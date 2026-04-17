@@ -218,22 +218,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ══ UPLOAD ══
-u1,u2,u3 = st.columns([1,2,1])
-with u2:
-    uploaded = st.file_uploader(
-        "📂 RAW_DATA_REPORTS_INSIGHT.xlsx",
-        type=["xlsx","xls"],
-        label_visibility="visible"
-    )
-    if uploaded:
-        b1,b2,b3 = st.columns([1,2,1])
-        with b2:
-            if st.button("⚡  Generate Reports + Dashboard", use_container_width=True):
-                with st.spinner("Processing..."):
-                    st.session_state.data    = process(uploaded)
-                    st.session_state.ready   = True
-                    st.session_state.ai_text = None
-                st.success("✅ Done! Reports Ready.")
+uploaded = st.file_uploader(
+    "📂 Upload RAW_DATA_REPORTS_INSIGHT.xlsx",
+    type=["xlsx","xls"],
+    label_visibility="visible"
+)
+if uploaded:
+    u1,u2,u3 = st.columns([1,2,1])
+    with u2:
+        if st.button("⚡  Generate Reports + Dashboard", use_container_width=True):
+            with st.spinner("Processing..."):
+                st.session_state.data    = process(uploaded)
+                st.session_state.ready   = True
+                st.session_state.ai_text = None
+            st.success("✅ Done! Reports Ready.")
 
 if not st.session_state.ready:
     st.markdown("""<div style="text-align:center;padding:5rem 0">
