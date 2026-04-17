@@ -218,13 +218,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ══ UPLOAD ══
-u1,u2,u3 = st.columns([1,2,1])
-with u2:
-    uploaded = st.file_uploader(
-        "Upload RAW_DATA_REPORTS_INSIGHT.xlsx",
-        type=["xlsx","xls"]
-    )
-    if uploaded:
+uploaded = st.file_uploader(
+    "📂 Upload RAW_DATA_REPORTS_INSIGHT.xlsx",
+    type=["xlsx","xls"],
+    label_visibility="visible"
+)
+if uploaded:
+    u1,u2,u3 = st.columns([1,2,1])
+    with u2:
         if st.button("⚡  Generate Reports + Dashboard", use_container_width=True):
             with st.spinner("Processing..."):
                 st.session_state.data    = process(uploaded)
