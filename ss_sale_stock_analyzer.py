@@ -73,6 +73,9 @@ label { color:#3d0066 !important; font-weight:600 !important; }
     background:#fff !important; border:2px dashed #c084fc !important; border-radius:14px !important;
 }
 [data-testid="stFileUploader"] * { color:#6a1b9a !important; font-weight:500 !important; }
+[data-testid="stFileUploaderDropzoneInstructions"] { display:none !important; }
+[data-testid="stFileUploaderDropzone"] button { display:block !important; margin:0.8rem auto !important; }
+[data-testid="stFileUploaderDropzone"] { padding:0.8rem !important; text-align:center !important; }
 
 .stTabs [data-baseweb="tab-list"] {
     background:#fff !important; border-radius:12px !important; padding:4px !important;
