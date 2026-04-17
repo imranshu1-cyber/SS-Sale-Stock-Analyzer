@@ -223,7 +223,11 @@ st.markdown("""
 # ══ UPLOAD ══
 c1,c2,c3 = st.columns([1,2,1])
 with c2:
-    uploaded = st.file_uploader("RAW_DATA_REPORTS_INSIGHT.xlsx", type=["xlsx","xls"], label_visibility="collapsed")
+    uploaded = st.file_uploader(
+        "📂 RAW_DATA_REPORTS_INSIGHT.xlsx upload karo",
+        type=["xlsx","xls"],
+        label_visibility="collapsed"
+    )
     if uploaded:
         b1,b2,b3 = st.columns([1,2,1])
         with b2:
