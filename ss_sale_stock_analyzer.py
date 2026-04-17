@@ -269,7 +269,7 @@ st.markdown("""
       <div style="color:rgba(255,255,255,.4)">→</div>
       <div class="hero-sub-line">Store · Brand · Gender · Category · Size · Cut Size</div>
     </div>
-    <div class="hero-sub">📂 SS Sale & Stock Reports·XLSX or XLS.xlsx &nbsp;·&nbsp; Auto Reports &nbsp;·&nbsp; Interactive Dashboard</div>
+    <div class="hero-sub">📂Upload SS Sale & Stock Reports·XLSX or XLS.xlsx &nbsp;·&nbsp; Auto Reports &nbsp;·&nbsp; Interactive Dashboard</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -278,7 +278,7 @@ st.markdown("""
 u1,u2,u3 = st.columns([1,2,1])
 with u2:
     uploaded = st.file_uploader(
-        "📂SS Sale & Stock Reports·XLSX or XLS",
+        "📂Upload SS Sale & Stock Reports·XLSX or XLS",
         type=["xlsx","xls"],
         label_visibility="visible"
     )
