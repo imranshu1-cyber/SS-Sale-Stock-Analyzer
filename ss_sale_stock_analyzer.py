@@ -74,7 +74,6 @@ label { color:#3d0066 !important; font-weight:600 !important; }
 }
 [data-testid="stFileUploader"] * { color:#6a1b9a !important; font-weight:500 !important; }
 
-
 .stTabs [data-baseweb="tab-list"] {
     background:#fff !important; border-radius:12px !important; padding:4px !important;
     border:1.5px solid #ddd6fe !important;
@@ -222,12 +221,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ══ UPLOAD ══
-u1,u2,u3 = st.columns([1,2,1])
-with u2:
+c1,c2,c3 = st.columns([1,2,1])
+with c2:
     uploaded = st.file_uploader(
-        "📂 RAW_DATA_REPORTS_INSIGHT.xlsx",
+        "📂 RAW_DATA_REPORTS_INSIGHT.xlsx upload karo",
         type=["xlsx","xls"],
-        label_visibility="visible"
+        label_visibility="collapsed"
     )
     if uploaded:
         b1,b2,b3 = st.columns([1,2,1])
