@@ -12,6 +12,7 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 *, *::before, *::after { font-family: 'Inter', sans-serif !important; box-sizing: border-box; }
 .stApp { background: #f4f0ff !important; }
+section[data-testid="stFileUploaderDropzone"] span { display:none !important; }
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 0.8rem !important; padding-bottom: 1rem !important; }
 
@@ -69,10 +70,7 @@ label { color:#3d0066 !important; font-weight:600 !important; }
     background:#fff !important; color:#6a1b9a !important;
     border:2px solid #6a1b9a !important; border-radius:10px !important; font-weight:700 !important;
 }
-[data-testid="stFileUploader"] {
-    background:#fff !important; border:2px dashed #c084fc !important; border-radius:14px !important;
-}
-[data-testid="stFileUploader"] * { color:#6a1b9a !important; font-weight:500 !important; }
+
 
 .stTabs [data-baseweb="tab-list"] {
     background:#fff !important; border-radius:12px !important; padding:4px !important;
@@ -221,22 +219,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ══ UPLOAD ══
-c1,c2,c3 = st.columns([1,2,1])
-with c2:
+u1,u2,u3 = st.columns([1,2,1])
+with u2:
     uploaded = st.file_uploader(
-        "📂 RAW_DATA_REPORTS_INSIGHT.xlsx upload karo",
-        type=["xlsx","xls"],
-        label_visibility="collapsed"
+        "Upload RAW_DATA_REPORTS_INSIGHT.xlsx",
+        type=["xlsx","xls"]
     )
     if uploaded:
-        b1,b2,b3 = st.columns([1,2,1])
-        with b2:
-            if st.button("⚡  Generate Reports + Dashboard", use_container_width=True):
-                with st.spinner("Processing..."):
-                    st.session_state.data    = process(uploaded)
-                    st.session_state.ready   = True
-                    st.session_state.ai_text = None
-                st.success("✅ Done! Reports Ready.")
+        if st.button("⚡  Generate Reports + Dashboard", use_container_width=True):
+            with st.spinner("Processing..."):
+                st.session_state.data    = process(uploaded)
+                st.session_state.ready   = True
+                st.session_state.ai_text = None
+            st.success("✅ Done! Reports Ready.")
 
 if not st.session_state.ready:
     st.markdown("""<div style="text-align:center;padding:5rem 0">
