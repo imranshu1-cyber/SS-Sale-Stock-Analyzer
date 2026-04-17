@@ -12,7 +12,6 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 *, *::before, *::after { font-family: 'Inter', sans-serif !important; box-sizing: border-box; }
 .stApp { background: #f4f0ff !important; }
-[data-testid="stFileUploaderLabel"] { display:none !important; }
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 0.8rem !important; padding-bottom: 1rem !important; }
 
@@ -223,7 +222,8 @@ u1,u2,u3 = st.columns([1,2,1])
 with u2:
     uploaded = st.file_uploader(
         "Upload RAW_DATA_REPORTS_INSIGHT.xlsx",
-        type=["xlsx","xls"]
+        type=["xlsx","xls"],
+        label_visibility="collapsed"
     )
     if uploaded:
         if st.button("⚡  Generate Reports + Dashboard", use_container_width=True):
