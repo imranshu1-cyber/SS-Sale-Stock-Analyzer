@@ -69,6 +69,10 @@ label { color:#3d0066 !important; font-weight:600 !important; }
     background:#fff !important; color:#6a1b9a !important;
     border:2px solid #6a1b9a !important; border-radius:10px !important; font-weight:700 !important;
 }
+[data-testid="stFileUploader"] {
+    background:#fff !important; border:2px dashed #c084fc !important; border-radius:14px !important;
+}
+[data-testid="stFileUploader"] * { color:#6a1b9a !important; font-weight:500 !important; }
 
 
 .stTabs [data-baseweb="tab-list"] {
@@ -218,20 +222,22 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ══ UPLOAD ══
-uploaded = st.file_uploader(
-    "📂 Upload RAW_DATA_REPORTS_INSIGHT.xlsx",
-    type=["xlsx","xls"],
-    label_visibility="visible"
-)
-if uploaded:
-    u1,u2,u3 = st.columns([1,2,1])
-    with u2:
-        if st.button("⚡  Generate Reports + Dashboard", use_container_width=True):
-            with st.spinner("Processing..."):
-                st.session_state.data    = process(uploaded)
-                st.session_state.ready   = True
-                st.session_state.ai_text = None
-            st.success("✅ Done! Reports Ready.")
+u1,u2,u3 = st.columns([1,2,1])
+with u2:
+    uploaded = st.file_uploader(
+        "📂 RAW_DATA_REPORTS_INSIGHT.xlsx",
+        type=["xlsx","xls"],
+        label_visibility="visible"
+    )
+    if uploaded:
+        b1,b2,b3 = st.columns([1,2,1])
+        with b2:
+            if st.button("⚡  Generate Reports + Dashboard", use_container_width=True):
+                with st.spinner("Processing..."):
+                    st.session_state.data    = process(uploaded)
+                    st.session_state.ready   = True
+                    st.session_state.ai_text = None
+                st.success("✅ Done! Reports Ready.")
 
 if not st.session_state.ready:
     st.markdown("""<div style="text-align:center;padding:5rem 0">
