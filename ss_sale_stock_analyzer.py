@@ -468,7 +468,7 @@ with t4:
     sec("🏷️ Gender × Brand Matrix")
     gbm = sale.pivot_table(index='Gender',columns='Brand',values='NetSale',aggfunc='sum').fillna(0)
     gbm['TOTAL'] = gbm.sum(axis=1)
-    st.dataframe(gbm.applymap(lambda x: round(x,2) if x!=0 else ""), use_container_width=True)
+    st.dataframe(gbm.map(lambda x: round(x,2) if x!=0 else ""), use_container_width=True)
 
 # ══ TAB 5: CATEGORY ══
 with t5:
@@ -543,7 +543,7 @@ with t5:
     sc_tbl = sale.pivot_table(index='Store Name',columns='Category',values='NetSale',aggfunc='sum').fillna(0)
     sc_tbl['TOTAL'] = sc_tbl.sum(axis=1)
     sc_tbl = sc_tbl.sort_values('TOTAL',ascending=False)
-    st.dataframe(sc_tbl.applymap(lambda x: round(x,2) if x!=0 else ""), use_container_width=True)
+    st.dataframe(sc_tbl.map(lambda x: round(x,2) if x!=0 else ""), use_container_width=True)
 
 # ══ TAB 6: SIZE & CUT SIZE ══
 with t6:
@@ -1096,11 +1096,6 @@ with t11:
         sell-through and dead stock — generates smart action plan.</div>
     </div>""", unsafe_allow_html=True)
 
-    # Groq API key input
-    api_key = st.text_input("🔑 Enter your Groq API Key", type="password",
-        placeholder="gsk_...", key="groq_key",
-        help="Get free key at console.groq.com")
-
     mall_ai  = sale.groupby('Month')['NetSale'].sum().reindex(MONTHS_ORDER).fillna(0)
     brand_ai = sale.groupby('Brand')['NetSale'].sum().sort_values(ascending=False)
     cat_ai   = sale.groupby('Category')['NetSale'].sum().sort_values(ascending=False)
@@ -1146,21 +1141,15 @@ Be specific with store/brand names. Direct and actionable."""
         gen_ai = st.button("🤖  Generate AI Strategy", use_container_width=True)
 
     if gen_ai:
-        if not api_key:
-            st.error("⚠️ Groq API Key daalo pehle! console.groq.com se free mein lo.")
-        else:
-            st.session_state.ai_loading = True
-            st.session_state.ai_text    = None
+        st.session_state.ai_loading = True
+        st.session_state.ai_text    = None
 
     if st.session_state.ai_loading and st.session_state.ai_text is None:
         with st.spinner("🤖 AI data analyse kar raha hai..."):
             try:
                 resp = requests.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json"
-                    },
+                    "https://mysmartwork.in/groq-proxy.php",
+                    headers={"Content-Type": "application/json"},
                     json={
                         "model": "llama-3.3-70b-versatile",
                         "messages": [{"role":"user","content": prompt}],
@@ -1170,7 +1159,13 @@ Be specific with store/brand names. Direct and actionable."""
                     timeout=60
                 )
                 if resp.status_code == 200:
-                    st.session_state.ai_text = resp.json()['choices'][0]['message']['content']
+                    data = resp.json()
+                    if 'choices' in data:
+                        st.session_state.ai_text = data['choices'][0]['message']['content']
+                    elif 'content' in data:
+                        st.session_state.ai_text = data['content'][0]['text']
+                    else:
+                        st.session_state.ai_text = f"❌ Unexpected: {str(data)[:200]}"
                     st.session_state.ai_loading = False
                 else:
                     st.session_state.ai_text = f"❌ API Error {resp.status_code}: {resp.text[:300]}"
@@ -1230,7 +1225,7 @@ Be specific with store/brand names. Direct and actionable."""
         st.markdown("""<div style="text-align:center;padding:3rem 0">
           <div style="font-size:3rem">🤖</div>
           <div style="font-size:1rem;color:#607d9b;font-weight:500;margin-top:.8rem">
-            Groq API Key daalo aur Generate karo</div>
+            Generate button click karo — AI analysis tayaar ho jaayegi</div>
           <div style="font-size:.8rem;color:#90a4c0;margin-top:.4rem">
-            Free key: console.groq.com · Model: LLaMA 3.3 70B</div>
+            Stores · Brands · Categories · Sizes · Inventory sab analyse hoga</div>
         </div>""", unsafe_allow_html=True)
