@@ -69,10 +69,6 @@ label { color:#3d0066 !important; font-weight:600 !important; }
     background:#fff !important; color:#6a1b9a !important;
     border:2px solid #6a1b9a !important; border-radius:10px !important; font-weight:700 !important;
 }
-[data-testid="stFileUploader"] {
-    background:#fff !important; border:2px dashed #c084fc !important; border-radius:14px !important;
-}
-[data-testid="stFileUploader"] * { color:#6a1b9a !important; font-weight:500 !important; }
 
 
 .stTabs [data-baseweb="tab-list"] {
