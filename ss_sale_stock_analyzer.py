@@ -73,9 +73,7 @@ label { color:#3d0066 !important; font-weight:600 !important; }
     background:#fff !important; border:2px dashed #c084fc !important; border-radius:14px !important;
 }
 [data-testid="stFileUploader"] * { color:#6a1b9a !important; font-weight:500 !important; }
-[data-testid="stFileUploaderDropzoneInstructions"] { display:none !important; }
-[data-testid="stFileUploaderDropzone"] button { display:block !important; margin:0.8rem auto !important; }
-[data-testid="stFileUploaderDropzone"] { padding:0.8rem !important; text-align:center !important; }
+
 
 .stTabs [data-baseweb="tab-list"] {
     background:#fff !important; border-radius:12px !important; padding:4px !important;
@@ -224,12 +222,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ══ UPLOAD ══
-c1,c2,c3 = st.columns([1,2,1])
-with c2:
+u1,u2,u3 = st.columns([1,2,1])
+with u2:
     uploaded = st.file_uploader(
-        "📂 RAW_DATA_REPORTS_INSIGHT.xlsx upload karo",
+        "📂 RAW_DATA_REPORTS_INSIGHT.xlsx",
         type=["xlsx","xls"],
-        label_visibility="collapsed"
+        label_visibility="visible"
     )
     if uploaded:
         b1,b2,b3 = st.columns([1,2,1])
