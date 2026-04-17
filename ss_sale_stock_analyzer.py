@@ -12,11 +12,10 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 *, *::before, *::after { font-family: 'Inter', sans-serif !important; box-sizing: border-box; }
 .stApp { background: #f4f0ff !important; }
-[data-testid="stFileUploaderDropzone"] {
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
+/* File uploader - hide drag text, show only Browse button */
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    display: none !important;
 }
-[data-testid="stFileUploaderDropzoneInstructions"] > div > span { display:none !important; }
-[data-testid="stFileUploaderDropzoneInstructions"] > div > small { font-size:.85rem !important; }
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 0.8rem !important; padding-bottom: 1rem !important; }
 
@@ -225,11 +224,10 @@ st.markdown("""
 # ══ UPLOAD ══
 u1,u2,u3 = st.columns([1,2,1])
 with u2:
-    st.markdown('<p style="font-size:.9rem;font-weight:600;color:#6a1b9a;margin-bottom:.3rem">📂 Upload RAW_DATA_REPORTS_INSIGHT.xlsx · XLSX or XLS</p>', unsafe_allow_html=True)
     uploaded = st.file_uploader(
-        "Upload",
+        "📂 Upload RAW_DATA_REPORTS_INSIGHT.xlsx",
         type=["xlsx","xls"],
-        label_visibility="collapsed"
+        label_visibility="visible"
     )
     if uploaded:
         if st.button("⚡  Generate Reports + Dashboard", use_container_width=True):
