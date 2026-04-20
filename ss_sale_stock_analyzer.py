@@ -269,7 +269,7 @@ st.markdown("""
       <div style="color:rgba(255,255,255,.4)">→</div>
       <div class="hero-sub-line">Store · Brand · Gender · Category · Size · Cut Size</div>
     </div>
-    <div class="hero-sub">📂Upload SS Sale & Stock Reports·XLSX or XLS.xlsx &nbsp;·&nbsp; Auto Reports &nbsp;·&nbsp; Interactive Dashboard</div>
+    <div class="hero-sub">Upload RAW_DATA_REPORTS_INSIGHT.xlsx &nbsp;·&nbsp; Auto Reports &nbsp;·&nbsp; Interactive Dashboard</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -278,7 +278,7 @@ st.markdown("""
 u1,u2,u3 = st.columns([1,2,1])
 with u2:
     uploaded = st.file_uploader(
-        "📂Upload SS Sale & Stock Reports·XLSX or XLS",
+        "📂 Upload RAW_DATA_REPORTS_INSIGHT.xlsx",
         type=["xlsx","xls"],
         label_visibility="visible"
     )
@@ -613,15 +613,18 @@ with t6:
     </div>""", unsafe_allow_html=True)
 
     # Filters
-    fc1, fc2 = st.columns(2)
+    fc1, fc2, fc3 = st.columns(3)
     with fc1:
         fs_store = st.selectbox("🏪 Filter by Store", ["All"] + sorted(stock["Store Name"].dropna().unique()), key="fs_store")
     with fc2:
+        fs_brand = st.selectbox("🏷️ Filter by Brand", ["All"] + sorted(stock["Brand"].dropna().unique()), key="fs_brand")
+    with fc3:
         fs_div = st.selectbox("📦 Filter by Division", ["All"] + DIVISIONS, key="fs_div")
 
     # Apply filters
     stk_fs = stock.copy()
     if fs_store != "All": stk_fs = stk_fs[stk_fs["Store Name"] == fs_store]
+    if fs_brand != "All": stk_fs = stk_fs[stk_fs["Brand"]      == fs_brand]
     if fs_div   != "All": stk_fs = stk_fs[stk_fs["Division"]   == fs_div]
 
     def get_sz_label(row):
@@ -646,7 +649,7 @@ with t6:
         sizes     = grp_df["SzLabel"].tolist()
         qtys      = grp_df["Closing Qty"].tolist()
         total_qty = sum(qtys)
-        is_cut    = any(q < 2 for q in qtys)
+        is_cut    = any(q == 0 for q in qtys)
         cls       = "✂️ Cut Size" if is_cut else "✅ Full Size"
         sku_rows.append({
             "Store": store, "Brand": brand, "Article No": article,
@@ -670,7 +673,7 @@ with t6:
         # KPI Cards
         k1f,k2f,k3f,k4f = st.columns(4)
         for col,lbl,val,sub,icon,col_bg in [
-            (k1f,"Total SKUs",     str(total_sku),  f"{fs_store} | {fs_div}",         "📦","linear-gradient(135deg,#6a1b9a,#9c27b0)"),
+            (k1f,"Total SKUs",     str(total_sku),  f"{fs_store} | {fs_brand} | {fs_div}",         "📦","linear-gradient(135deg,#6a1b9a,#9c27b0)"),
             (k2f,"Full Size SKUs", str(full_count), f"{full_pct}% of total",           "✅","linear-gradient(135deg,#166534,#16a34a)"),
             (k3f,"Cut Size SKUs",  str(cut_count),  f"{100-full_pct:.1f}% of total",   "✂️","linear-gradient(135deg,#991b1b,#dc2626)"),
             (k4f,"Avg Sizes/SKU",  f"{sku_df['Size Count'].mean():.1f}", "Avg sizes per article","📐","linear-gradient(135deg,#1e40af,#3b82f6)"),
@@ -1203,29 +1206,32 @@ Be specific with store/brand names. Direct and actionable."""
     if st.session_state.ai_loading and st.session_state.ai_text is None:
         with st.spinner("🤖 AI data analyse kar raha hai..."):
             try:
-                resp = requests.post(
-                    "https://mysmartwork.in/groq-proxy.php",
-                    headers={"Content-Type": "application/json"},
-                    json={
-                        "model": "llama-3.3-70b-versatile",
-                        "messages": [{"role":"user","content": prompt}],
-                        "max_tokens": 2000,
-                        "temperature": 0.7
-                    },
-                    timeout=60
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if 'choices' in data:
-                        st.session_state.ai_text = data['choices'][0]['message']['content']
-                    elif 'content' in data:
-                        st.session_state.ai_text = data['content'][0]['text']
-                    else:
-                        st.session_state.ai_text = f"❌ Unexpected: {str(data)[:200]}"
+                import os
+                groq_key = os.environ.get("GROQ_API_KEY", "")
+                if not groq_key:
+                    st.session_state.ai_text = "❌ GROQ_API_KEY not set in Streamlit Secrets"
                     st.session_state.ai_loading = False
                 else:
-                    st.session_state.ai_text = f"❌ API Error {resp.status_code}: {resp.text[:300]}"
-                    st.session_state.ai_loading = False
+                    resp = requests.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {groq_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": "llama-3.3-70b-versatile",
+                            "messages": [{"role":"user","content": prompt}],
+                            "max_tokens": 2000,
+                            "temperature": 0.7
+                        },
+                        timeout=60
+                    )
+                    if resp.status_code == 200:
+                        st.session_state.ai_text = resp.json()['choices'][0]['message']['content']
+                        st.session_state.ai_loading = False
+                    else:
+                        st.session_state.ai_text = f"❌ API Error {resp.status_code}: {resp.text[:300]}"
+                        st.session_state.ai_loading = False
             except Exception as e:
                 st.session_state.ai_text = f"❌ Error: {str(e)}"
                 st.session_state.ai_loading = False
