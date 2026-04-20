@@ -932,9 +932,18 @@ with t8:
             fig_dm = go.Figure(go.Bar(x=MONTH_SHORT,y=mm.values,
                 marker=dict(color=mm.values,colorscale=BLUE_SEQ,line=dict(width=0)),
                 text=[fmt_lac(v) if v>0 else "" for v in mm.values],
-                textposition='outside',textfont=dict(size=10,color='#1a0030')))
-            fig_dm.update_layout(**cl(280,f"{dd_st} — Monthly Sale",margin=dict(l=10,r=10,t=50,b=40)),bargap=0.3)
-            st.plotly_chart(fig_dm, use_container_width=True)
+                textposition='outside',textfont=dict(size=10,color='#1a0030'),
+                customdata=MONTHS_ORDER,
+                hovertemplate='<b>%{x}</b><br>Sale: %{y:.2f} L<br><i>Click to see details</i><extra></extra>'))
+            fig_dm.update_layout(**cl(280,f"{dd_st} — Monthly Sale (Click any bar)",margin=dict(l=10,r=10,t=50,b=40)),bargap=0.3)
+            fig_dm.update_layout(clickmode='event+select')
+            sel_month_event = st.plotly_chart(fig_dm, use_container_width=True, on_select="rerun", key=f"dd_chart_{dd_st}")
+
+            # Get clicked month
+            sel_mon_idx = None
+            if sel_month_event and sel_month_event.get("selection") and sel_month_event["selection"].get("points"):
+                pt = sel_month_event["selection"]["points"][0]
+                sel_mon_idx = pt.get("point_index", None)
 
         with d2:
             cd = ss.groupby('Category')['NetSale'].sum()
@@ -964,6 +973,79 @@ with t8:
                 insidetextfont=dict(size=10,color='#fff')))
             fig_dg.update_layout(**cl(280,"Gender Mix",margin=dict(l=10,r=10,t=50,b=10)))
             st.plotly_chart(fig_dg, use_container_width=True)
+
+        # ── Month Detail Table ──
+        if sel_mon_idx is not None:
+            sel_mon_name = MONTHS_ORDER[sel_mon_idx]
+            sel_mon_short = MONTH_SHORT[sel_mon_idx]
+            st.markdown(f'''<div style="background:linear-gradient(135deg,#6a1b9a,#9c27b0);
+                border-radius:10px;padding:.6rem 1.1rem;margin:.8rem 0;color:#fff;font-size:.85rem;font-weight:700">
+                📅 {sel_mon_short} — Detailed Breakdown for {dd_st}
+            </div>''', unsafe_allow_html=True)
+
+            ss_mon = ss[ss['Month'] == sel_mon_name]
+            if len(ss_mon) > 0:
+                dm1, dm2, dm3 = st.columns(3)
+                with dm1:
+                    sec(f"🏷️ Brand — {sel_mon_short}")
+                    bd_m = ss_mon.groupby('Brand')['NetSale'].sum().sort_values(ascending=False)
+                    bd_m = bd_m[bd_m > 0]
+                    if len(bd_m) > 0:
+                        fig_bm = go.Figure(go.Bar(x=bd_m.index.tolist(), y=bd_m.values,
+                            marker=dict(color=CAT_COLORS[:len(bd_m)], line=dict(width=0)),
+                            text=[fmt_lac(v) for v in bd_m.values], textposition='outside',
+                            textfont=dict(size=10, color='#1a0030')))
+                        fig_bm.update_layout(**cl(260, f"Brand Sale — {sel_mon_short}",
+                            margin=dict(l=10,r=10,t=45,b=60)), bargap=0.3, xaxis_tickangle=-30,
+                            yaxis_range=[0, bd_m.max()*1.28])
+                        st.plotly_chart(fig_bm, use_container_width=True)
+                    # Brand table
+                    bd_tbl = pd.DataFrame({'Brand': bd_m.index, 'Sale (L)': [round(v,2) for v in bd_m.values]})
+                    st.dataframe(bd_tbl, use_container_width=True, hide_index=True)
+
+                with dm2:
+                    sec(f"🗂️ Category — {sel_mon_short}")
+                    cat_m = ss_mon.groupby('Category')['NetSale'].sum().sort_values(ascending=False)
+                    cat_m = cat_m[cat_m > 0]
+                    if len(cat_m) > 0:
+                        fig_cm = go.Figure(go.Pie(labels=cat_m.index.tolist(), values=cat_m.values.tolist(),
+                            hole=0.45, marker=dict(colors=CAT_COLORS[:len(cat_m)], line=dict(color='#fff',width=2)),
+                            textinfo='label+percent', textfont=dict(size=10,color='#1a0030'),
+                            insidetextfont=dict(size=9,color='#fff')))
+                        fig_cm.update_layout(**cl(260, f"Category — {sel_mon_short}", margin=dict(l=10,r=10,t=45,b=10)))
+                        st.plotly_chart(fig_cm, use_container_width=True)
+                    cat_tbl = pd.DataFrame({'Category': cat_m.index, 'Sale (L)': [round(v,2) for v in cat_m.values]})
+                    st.dataframe(cat_tbl, use_container_width=True, hide_index=True)
+
+                with dm3:
+                    sec(f"👤 Gender — {sel_mon_short}")
+                    gdr_m = ss_mon.groupby('Gender')['NetSale'].sum().sort_values(ascending=False)
+                    gdr_m = gdr_m[gdr_m > 0]
+                    if len(gdr_m) > 0:
+                        fig_gm2 = go.Figure(go.Pie(labels=gdr_m.index.tolist(), values=gdr_m.values.tolist(),
+                            hole=0.45, marker=dict(colors=['#7b1fa2','#e91e63','#1565c0','#ff6f00'],
+                            line=dict(color='#fff',width=2)),
+                            textinfo='label+percent', textfont=dict(size=10,color='#1a0030'),
+                            insidetextfont=dict(size=9,color='#fff')))
+                        fig_gm2.update_layout(**cl(260, f"Gender — {sel_mon_short}", margin=dict(l=10,r=10,t=45,b=10)))
+                        st.plotly_chart(fig_gm2, use_container_width=True)
+                    gdr_tbl = pd.DataFrame({'Gender': gdr_m.index, 'Sale (L)': [round(v,2) for v in gdr_m.values]})
+                    st.dataframe(gdr_tbl, use_container_width=True, hide_index=True)
+
+                # Combined detail table
+                sec(f"📋 Full Detail — {sel_mon_short}")
+                detail = ss_mon.groupby(['Brand','Category','Gender'])['NetSale'].sum().reset_index()
+                detail = detail[detail['NetSale'] > 0].sort_values('NetSale', ascending=False)
+                detail['NetSale'] = detail['NetSale'].apply(lambda x: round(x,2))
+                detail.columns = ['Brand','Category','Gender','Sale (L)']
+                st.dataframe(detail, use_container_width=True, hide_index=True)
+            else:
+                st.info(f"No sale data for {sel_mon_short}")
+        else:
+            st.markdown('''<div style="background:#f3e5f5;border:1.5px solid #c084fc;border-radius:10px;
+                padding:.6rem 1rem;font-size:.82rem;color:#4c1d95;margin:.8rem 0">
+                💡 <b>Tip:</b> Click any month bar above to see Brand · Category · Gender breakdown for that month
+            </div>''', unsafe_allow_html=True)
 
         sec("📦 Stock Details")
         sd = sk.groupby(['Division','Category','Brand'])[['Closing Qty','StockValue']].sum()
