@@ -621,10 +621,22 @@ with t6:
 
     # ── FULL SIZE vs CUT SIZE SECTION ──
     sec("✂️ Full Size & Cut Size SKU Analysis")
-    st.markdown("""<div style="background:#f8faff;border:1.5px solid #c7d7f9;border-radius:8px;
+    # Dynamic description based on filters
+    if fs_div == "FOOTWEAR":
+        if fs_gender == "WOMEN":
+            size_info = "Women Footwear sizes checked: <b>4, 5, 6, 7</b>"
+        else:
+            size_info = "Men Footwear sizes checked: <b>7, 8, 9, 10</b>"
+    elif fs_div == "APPAREL":
+        size_info = "Apparel sizes checked: <b>S, M, L</b>"
+    else:
+        size_info = "Footwear Men: <b>7,8,9,10</b> &nbsp;·&nbsp; Footwear Women: <b>4,5,6,7</b> &nbsp;·&nbsp; Apparel: <b>S, M, L</b>"
+
+    st.markdown(f"""<div style="background:#f8faff;border:1.5px solid #c7d7f9;border-radius:8px;
         padding:.6rem 1rem;font-size:.8rem;color:#1e40af;margin-bottom:.8rem">
-        <b>Cut Size SKU</b> = Article where any size has Closing Qty = 0 (size missing) &nbsp;·&nbsp;
-        <b>Full Size SKU</b> = Article where all sizes have Closing Qty ≥ 1 (all sizes present)
+        <b>Cut Size SKU</b> = Article where any expected size has Closing Qty = 0 &nbsp;·&nbsp;
+        <b>Full Size SKU</b> = Article where all expected sizes have Closing Qty ≥ 1 &nbsp;·&nbsp;
+        {size_info}
     </div>""", unsafe_allow_html=True)
 
     # Filters
@@ -665,7 +677,7 @@ with t6:
     # Expected sizes
     FW_MEN      = ['7', '8', '9', '10']
     FW_WOMEN    = ['4', '5', '6', '7']
-    AP_EXPECTED = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL']
+    AP_EXPECTED = ['S', 'M', 'L']
 
     sku_rows = []
     for (store, brand, article), grp_df in stk_fs.groupby(["Store Name","Brand","Item ID"]):
@@ -678,14 +690,19 @@ with t6:
         # Build size->qty map
         sz_qty = {}
         for s, q in zip(sizes, qtys):
-            sz_qty[str(s).strip()] = sz_qty.get(str(s).strip(), 0) + q
+            sz_qty[str(s).strip().upper()] = sz_qty.get(str(s).strip().upper(), 0) + q
 
         if div == "FOOTWEAR":
             expected = FW_WOMEN if gender == "WOMEN" else FW_MEN
             is_cut = any(sz_qty.get(s, 0) == 0 for s in expected)
         elif div == "APPAREL":
-            expected = AP_EXPECTED
-            is_cut = any(sz_qty.get(s, 0) == 0 for s in expected)
+            # Only check S, M, L — ignore other sizes
+            ap_present = [s for s in AP_EXPECTED if s in sz_qty]
+            if len(ap_present) > 0:
+                is_cut = any(sz_qty.get(s, 0) == 0 for s in ap_present)
+            else:
+                # Article has no S/M/L sizes — skip classification
+                is_cut = False
         else:
             is_cut = any(q == 0 for q in qtys)
 
@@ -757,7 +774,7 @@ with t6:
 
         # Full Size Table
         st.markdown("<br>", unsafe_allow_html=True)
-        sec("✅ Full Size SKUs — Har size ki qty ≥ 2")
+        sec("✅ Full Size SKUs — All expected sizes present (Qty ≥ 1)")
         if len(full_df) > 0:
             fs_show = full_df[["Store","Brand","Gender","Division","Article No","Total Qty","Size Count","Sizes"]].sort_values(["Store","Brand","Gender"])
             st.dataframe(
@@ -768,7 +785,7 @@ with t6:
 
         # Cut Size Table
         st.markdown("<br>", unsafe_allow_html=True)
-        sec("✂️ Cut Size SKUs — Kisi size ki qty < 2")
+        sec("✂️ Cut Size SKUs — Any expected size missing (Qty = 0)")
         if len(cut_df2) > 0:
             cs_show = cut_df2[["Store","Brand","Gender","Division","Article No","Total Qty","Size Count","Sizes"]].sort_values(["Store","Brand","Gender"])
             st.dataframe(
