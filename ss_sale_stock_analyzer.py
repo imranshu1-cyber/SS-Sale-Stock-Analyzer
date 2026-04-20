@@ -657,6 +657,24 @@ with t6:
     if fs_gender != "All": stk_fs = stk_fs[stk_fs["Gender"]     == fs_gender]
     if fs_div    != "All": stk_fs = stk_fs[stk_fs["Division"]   == fs_div]
 
+    # Dynamic description based on filters
+    if fs_div == "FOOTWEAR":
+        if fs_gender == "WOMEN":
+            size_info = "Women Footwear sizes checked: <b>4, 5, 6, 7</b>"
+        else:
+            size_info = "Men Footwear sizes checked: <b>7, 8, 9, 10</b>"
+    elif fs_div == "APPAREL":
+        size_info = "Apparel sizes checked: <b>S, M, L</b>"
+    else:
+        size_info = "Footwear Men: <b>7,8,9,10</b> &nbsp;·&nbsp; Footwear Women: <b>4,5,6,7</b> &nbsp;·&nbsp; Apparel: <b>S, M, L</b>"
+
+    st.markdown(f"""<div style="background:#f8faff;border:1.5px solid #c7d7f9;border-radius:8px;
+        padding:.6rem 1rem;font-size:.8rem;color:#1e40af;margin-bottom:.8rem">
+        <b>Cut Size SKU</b> = Article where any expected size has Closing Qty = 0 &nbsp;·&nbsp;
+        <b>Full Size SKU</b> = Article where all expected sizes have Closing Qty ≥ 1 &nbsp;·&nbsp;
+        {size_info}
+    </div>""", unsafe_allow_html=True)
+
     def get_sz_label(row):
         div = row.get("Division","")
         sz  = str(row.get("Size",""))
