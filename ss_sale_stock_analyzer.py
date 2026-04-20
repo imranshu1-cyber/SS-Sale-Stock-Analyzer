@@ -628,19 +628,22 @@ with t6:
     </div>""", unsafe_allow_html=True)
 
     # Filters
-    fc1, fc2, fc3 = st.columns(3)
+    fc1, fc2, fc3, fc4 = st.columns(4)
     with fc1:
         fs_store = st.selectbox("🏪 Filter by Store", ["All"] + sorted(stock["Store Name"].dropna().unique()), key="fs_store")
     with fc2:
         fs_brand = st.selectbox("🏷️ Filter by Brand", ["All"] + sorted(stock["Brand"].dropna().unique()), key="fs_brand")
     with fc3:
+        fs_gender = st.selectbox("👤 Filter by Gender", ["All", "MEN", "WOMEN", "KIDS"], key="fs_gender")
+    with fc4:
         fs_div = st.selectbox("📦 Filter by Division", ["All"] + DIVISIONS, key="fs_div")
 
     # Apply filters
     stk_fs = stock.copy()
-    if fs_store != "All": stk_fs = stk_fs[stk_fs["Store Name"] == fs_store]
-    if fs_brand != "All": stk_fs = stk_fs[stk_fs["Brand"]      == fs_brand]
-    if fs_div   != "All": stk_fs = stk_fs[stk_fs["Division"]   == fs_div]
+    if fs_store  != "All": stk_fs = stk_fs[stk_fs["Store Name"] == fs_store]
+    if fs_brand  != "All": stk_fs = stk_fs[stk_fs["Brand"]      == fs_brand]
+    if fs_gender != "All": stk_fs = stk_fs[stk_fs["Gender"]     == fs_gender]
+    if fs_div    != "All": stk_fs = stk_fs[stk_fs["Division"]   == fs_div]
 
     def get_sz_label(row):
         div = row.get("Division","")
@@ -659,15 +662,38 @@ with t6:
     stk_fs = stk_fs[stk_fs["SzLabel"].notna()]
 
     # Per Store + Brand + Article → classify
+    # Expected sizes
+    FW_MEN      = ['7', '8', '9', '10']
+    FW_WOMEN    = ['4', '5', '6', '7']
+    AP_EXPECTED = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL']
+
     sku_rows = []
     for (store, brand, article), grp_df in stk_fs.groupby(["Store Name","Brand","Item ID"]):
         sizes     = grp_df["SzLabel"].tolist()
         qtys      = grp_df["Closing Qty"].tolist()
         total_qty = sum(qtys)
-        is_cut    = any(q == 0 for q in qtys)
-        cls       = "✂️ Cut Size" if is_cut else "✅ Full Size"
+        div       = grp_df["Division"].iloc[0] if "Division" in grp_df.columns else ""
+        gender    = str(grp_df["Gender"].iloc[0]).upper().strip() if "Gender" in grp_df.columns else ""
+
+        # Build size->qty map
+        sz_qty = {}
+        for s, q in zip(sizes, qtys):
+            sz_qty[str(s).strip()] = sz_qty.get(str(s).strip(), 0) + q
+
+        if div == "FOOTWEAR":
+            expected = FW_WOMEN if gender == "WOMEN" else FW_MEN
+            is_cut = any(sz_qty.get(s, 0) == 0 for s in expected)
+        elif div == "APPAREL":
+            expected = AP_EXPECTED
+            is_cut = any(sz_qty.get(s, 0) == 0 for s in expected)
+        else:
+            is_cut = any(q == 0 for q in qtys)
+
+        cls = "✂️ Cut Size" if is_cut else "✅ Full Size"
         sku_rows.append({
             "Store": store, "Brand": brand, "Article No": article,
+            "Gender": gender,
+            "Division": div,
             "Total Qty": int(total_qty),
             "Sizes": ", ".join([f"{s}:{int(q)}" for s,q in zip(sizes,qtys)]),
             "Size Count": len(sizes),
@@ -688,7 +714,7 @@ with t6:
         # KPI Cards
         k1f,k2f,k3f,k4f = st.columns(4)
         for col,lbl,val,sub,icon,col_bg in [
-            (k1f,"Total SKUs",     str(total_sku),  f"{fs_store} | {fs_brand} | {fs_div}",         "📦","linear-gradient(135deg,#6a1b9a,#9c27b0)"),
+            (k1f,"Total SKUs",     str(total_sku),  f"{fs_store} | {fs_brand} | {fs_gender} | {fs_div}",         "📦","linear-gradient(135deg,#6a1b9a,#9c27b0)"),
             (k2f,"Full Size SKUs", str(full_count), f"{full_pct}% of total",           "✅","linear-gradient(135deg,#166534,#16a34a)"),
             (k3f,"Cut Size SKUs",  str(cut_count),  f"{100-full_pct:.1f}% of total",   "✂️","linear-gradient(135deg,#991b1b,#dc2626)"),
             (k4f,"Avg Sizes/SKU",  f"{sku_df['Size Count'].mean():.1f}", "Avg sizes per article","📐","linear-gradient(135deg,#1e40af,#3b82f6)"),
@@ -733,7 +759,7 @@ with t6:
         st.markdown("<br>", unsafe_allow_html=True)
         sec("✅ Full Size SKUs — Har size ki qty ≥ 2")
         if len(full_df) > 0:
-            fs_show = full_df[["Store","Brand","Article No","Total Qty","Size Count","Sizes"]].sort_values(["Store","Brand"])
+            fs_show = full_df[["Store","Brand","Gender","Division","Article No","Total Qty","Size Count","Sizes"]].sort_values(["Store","Brand","Gender"])
             st.dataframe(
                 fs_show.style.apply(lambda x: ["background-color:#dcfce7;color:#166534"]*len(x),axis=1),
                 use_container_width=True,hide_index=True)
@@ -744,7 +770,7 @@ with t6:
         st.markdown("<br>", unsafe_allow_html=True)
         sec("✂️ Cut Size SKUs — Kisi size ki qty < 2")
         if len(cut_df2) > 0:
-            cs_show = cut_df2[["Store","Brand","Article No","Total Qty","Size Count","Sizes"]].sort_values(["Store","Brand"])
+            cs_show = cut_df2[["Store","Brand","Gender","Division","Article No","Total Qty","Size Count","Sizes"]].sort_values(["Store","Brand","Gender"])
             st.dataframe(
                 cs_show.style.apply(lambda x: ["background-color:#fee2e2;color:#991b1b"]*len(x),axis=1),
                 use_container_width=True,hide_index=True)
