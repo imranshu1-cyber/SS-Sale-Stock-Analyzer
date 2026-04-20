@@ -608,8 +608,8 @@ with t6:
     sec("✂️ Full Size & Cut Size SKU Analysis")
     st.markdown("""<div style="background:#f8faff;border:1.5px solid #c7d7f9;border-radius:8px;
         padding:.6rem 1rem;font-size:.8rem;color:#1e40af;margin-bottom:.8rem">
-        <b>Cut Size SKU</b> = Article jisme kisi bhi size ki Closing Qty &lt; 2 ho &nbsp;·&nbsp;
-        <b>Full Size SKU</b> = Article jisme har size ki Closing Qty ≥ 2 ho
+        <b>Cut Size SKU</b> = Article where any size has Closing Qty = 0 (size missing) &nbsp;·&nbsp;
+        <b>Full Size SKU</b> = Article where all sizes have Closing Qty ≥ 1 (all sizes present)
     </div>""", unsafe_allow_html=True)
 
     # Filters
