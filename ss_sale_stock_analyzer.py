@@ -697,13 +697,8 @@ with t6:
             expected = FW_WOMEN if gender == "WOMEN" else FW_MEN
             is_cut = any(sz_qty.get(s, 0) == 0 for s in expected)
         elif div == "APPAREL":
-            # Only check S, M, L — ignore other sizes
-            ap_present = [s for s in AP_EXPECTED if s in sz_qty]
-            if len(ap_present) > 0:
-                is_cut = any(sz_qty.get(s, 0) == 0 for s in ap_present)
-            else:
-                # Article has no S/M/L sizes — skip classification
-                is_cut = False
+            # Check S, M, L — all three must be present with qty >= 1
+            is_cut = any(sz_qty.get(s, 0) == 0 for s in AP_EXPECTED)
         else:
             is_cut = any(q == 0 for q in qtys)
 
