@@ -221,6 +221,7 @@ AP_MAP   = {s:i for i,s in enumerate(AP_ORDER)}
 AP_REV   = {i:s for i,s in enumerate(AP_ORDER)}
 
 # ══ PROCESS ══
+@st.cache_data(show_spinner=False)
 def process(file):
     stock = pd.read_excel(file, sheet_name="STOCK REPORT", header=1)
     sale  = pd.read_excel(file, sheet_name="SALE REPORT",  header=1)
@@ -253,6 +254,20 @@ def process(file):
     grand_stock = stock['StockValue'].sum()
     grand_qty   = stock['Closing Qty'].sum()
     return sale, stock, all_stores, grand_sale, grand_stock, grand_qty
+
+# ══ CACHED HELPERS ══
+@st.cache_data(show_spinner=False)
+def get_store_sale(sale_df, store):
+    return sale_df[sale_df['Store Name']==store].copy()
+
+@st.cache_data(show_spinner=False)
+def get_store_stock(stock_df, store):
+    return stock_df[stock_df['Store Name']==store].copy()
+
+@st.cache_data(show_spinner=False)
+def get_month_data(sale_df, store, month_order):
+    ss = sale_df[sale_df['Store Name']==store]
+    return ss[ss['Month']==month_order].copy()
 
 # ══ SESSION ══
 for k,v in {"ready":False,"data":None,"ai_text":None,"ai_loading":False}.items():
@@ -912,8 +927,8 @@ with t8:
     sec("🔍 Store Deep Dive")
     dd_st = st.selectbox("Select Store", sorted(sale['Store Name'].unique()), key="dd_s")
     if dd_st:
-        ss = sale[sale['Store Name']==dd_st]
-        sk = stock[stock['Store Name']==dd_st]
+        ss = get_store_sale(sale, dd_st)
+        sk = get_store_stock(stock, dd_st)
         ts = ss['NetSale'].sum(); tk = sk['StockValue'].sum()
         tq = sk['Closing Qty'].sum()
         rank = int(sale.groupby('Store Name')['NetSale'].sum().rank(ascending=False)[dd_st])
