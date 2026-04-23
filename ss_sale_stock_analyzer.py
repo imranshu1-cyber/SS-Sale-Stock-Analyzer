@@ -761,10 +761,29 @@ with t6:
 
         with ch2:
             sec("🏪 Store-wise Full vs Cut Size")
-            if "Store" not in sku_df.columns:
-                st.info("Store-wise chart available when a specific store is selected.")
-            else:
-                sg = sku_df.groupby(["Store","Classification"]).size().unstack(fill_value=0)
+            # Build store-wise classification using original stock data
+            store_sku = []
+            stk_for_chart = stk_fs.copy()
+            for (st_name, article, brand), grp_df2 in stk_for_chart.groupby(["Store Name","Item ID","Brand"]):
+                div2    = grp_df2["Division"].iloc[0] if "Division" in grp_df2.columns else ""
+                gender2 = str(grp_df2["Gender"].iloc[0]).upper().strip() if "Gender" in grp_df2.columns else ""
+                sizes2  = grp_df2["SzLabel"].tolist()
+                qtys2   = grp_df2["Closing Qty"].tolist()
+                sz_qty2 = {}
+                for s2, q2 in zip(sizes2, qtys2):
+                    if s2 is not None and str(s2).strip() != 'nan':
+                        sz_qty2[str(s2).strip().upper()] = sz_qty2.get(str(s2).strip().upper(), 0) + q2
+                if div2 == "FOOTWEAR":
+                    exp2 = FW_WOMEN if gender2 == "WOMEN" else FW_MEN
+                    is_cut2 = any(sz_qty2.get(s, 0) == 0 for s in exp2)
+                elif div2 == "APPAREL":
+                    is_cut2 = any(sz_qty2.get(s, 0) == 0 for s in AP_EXPECTED)
+                else:
+                    is_cut2 = False
+                store_sku.append({"Store": st_name, "Classification": "✂️ Cut Size" if is_cut2 else "✅ Full Size"})
+            if store_sku:
+                sg_df = pd.DataFrame(store_sku)
+                sg = sg_df.groupby(["Store","Classification"]).size().unstack(fill_value=0)
                 sl = sg.index.tolist()
                 fv = [int(sg.loc[s,"✅ Full Size"]) if "✅ Full Size" in sg.columns else 0 for s in sl]
                 cv = [int(sg.loc[s,"✂️ Cut Size"])  if "✂️ Cut Size"  in sg.columns else 0 for s in sl]
