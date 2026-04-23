@@ -764,16 +764,16 @@ with t6:
             if "Store" not in sku_df.columns:
                 st.info("Store-wise chart available when a specific store is selected.")
             else:
-              sg = sku_df.groupby(["Store","Classification"]).size().unstack(fill_value=0)
-            sl = sg.index.tolist()
-            fv = [int(sg.loc[s,"✅ Full Size"]) if "✅ Full Size" in sg.columns else 0 for s in sl]
-            cv = [int(sg.loc[s,"✂️ Cut Size"])  if "✂️ Cut Size"  in sg.columns else 0 for s in sl]
-            fig_sc = go.Figure()
-            fig_sc.add_trace(go.Bar(name="✅ Full",x=sl,y=fv,marker_color="#16a34a",text=fv,textposition="outside"))
-            fig_sc.add_trace(go.Bar(name="✂️ Cut", x=sl,y=cv,marker_color="#dc2626",text=cv,textposition="outside"))
-            fig_sc.update_layout(**cl(320,"Store-wise Full vs Cut",margin=dict(l=10,r=10,t=55,b=110)),
-                barmode="group",bargap=0.2,xaxis_tickangle=-45)
-            st.plotly_chart(fig_sc, use_container_width=True)
+                sg = sku_df.groupby(["Store","Classification"]).size().unstack(fill_value=0)
+                sl = sg.index.tolist()
+                fv = [int(sg.loc[s,"✅ Full Size"]) if "✅ Full Size" in sg.columns else 0 for s in sl]
+                cv = [int(sg.loc[s,"✂️ Cut Size"])  if "✂️ Cut Size"  in sg.columns else 0 for s in sl]
+                fig_sc = go.Figure()
+                fig_sc.add_trace(go.Bar(name="✅ Full",x=sl,y=fv,marker_color="#16a34a",text=fv,textposition="outside"))
+                fig_sc.add_trace(go.Bar(name="✂️ Cut", x=sl,y=cv,marker_color="#dc2626",text=cv,textposition="outside"))
+                fig_sc.update_layout(**cl(320,"Store-wise Full vs Cut",margin=dict(l=10,r=10,t=55,b=110)),
+                    barmode="group",bargap=0.2,xaxis_tickangle=-45)
+                st.plotly_chart(fig_sc, use_container_width=True)
 
         # Full Size Table
         st.markdown("<br>", unsafe_allow_html=True)
