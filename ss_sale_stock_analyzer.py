@@ -761,7 +761,10 @@ with t6:
 
         with ch2:
             sec("🏪 Store-wise Full vs Cut Size")
-            sg = sku_df.groupby(["Store","Classification"]).size().unstack(fill_value=0)
+            if "Store" not in sku_df.columns:
+                st.info("Store-wise chart available when a specific store is selected.")
+            else:
+              sg = sku_df.groupby(["Store","Classification"]).size().unstack(fill_value=0)
             sl = sg.index.tolist()
             fv = [int(sg.loc[s,"✅ Full Size"]) if "✅ Full Size" in sg.columns else 0 for s in sl]
             cv = [int(sg.loc[s,"✂️ Cut Size"])  if "✂️ Cut Size"  in sg.columns else 0 for s in sl]
