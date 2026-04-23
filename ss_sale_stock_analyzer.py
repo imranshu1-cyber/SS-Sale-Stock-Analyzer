@@ -680,15 +680,16 @@ with t6:
     FW_WOMEN    = ['4', '5', '6', '7']
     AP_EXPECTED = ['S', 'M', 'L']
 
+    # SKU classification: Store + Item ID level (each store checked separately)
     sku_rows = []
-    for (article, brand), grp_df in stk_fs.groupby(["Item ID","Brand"]):
+    for (store, article, brand), grp_df in stk_fs.groupby(["Store Name","Item ID","Brand"]):
         sizes     = grp_df["SzLabel"].tolist()
         qtys      = grp_df["Closing Qty"].tolist()
         total_qty = sum(qtys)
         div       = grp_df["Division"].iloc[0] if "Division" in grp_df.columns else ""
         gender    = str(grp_df["Gender"].iloc[0]).upper().strip() if "Gender" in grp_df.columns else ""
 
-        # Build size->qty map
+        # Build size->qty map (unique sizes, aggregate qty)
         sz_qty = {}
         for s, q in zip(sizes, qtys):
             if s is not None and str(s).strip() != 'nan':
@@ -698,22 +699,17 @@ with t6:
             expected = FW_WOMEN if gender == "WOMEN" else FW_MEN
             is_cut = any(sz_qty.get(s, 0) == 0 for s in expected)
         elif div == "APPAREL":
-            # Check S, M, L — all three must be present with qty >= 1
             is_cut = any(sz_qty.get(s, 0) == 0 for s in AP_EXPECTED)
         else:
-            is_cut = any(q == 0 for q in qtys)
+            is_cut = False
 
         cls = "✂️ Cut Size" if is_cut else "✅ Full Size"
-        stores_list = ", ".join(sorted(grp_df["Store Name"].dropna().unique().tolist()))
         sku_rows.append({
-            "Brand": brand, "Article No": article,
-            "Gender": gender,
-            "Division": div,
-            "Stores": stores_list,
-            "Store Count": grp_df["Store Name"].nunique(),
+            "Store": store, "Brand": brand, "Article No": article,
+            "Gender": gender, "Division": div,
             "Total Qty": int(total_qty),
-            "Sizes": ", ".join([f"{s}:{int(q)}" for s,q in zip(sizes,qtys)]),
-            "Size Count": len(sizes),
+            "Sizes": ", ".join([f"{s}:{sz_qty[s]}" for s in sorted(sz_qty.keys(), key=lambda x: (float(x) if x.replace('.','').isdigit() else 99))]),
+            "Size Count": len(sz_qty),
             "Classification": cls,
         })
 
@@ -723,10 +719,12 @@ with t6:
         sku_df  = pd.DataFrame(sku_rows)
         full_df = sku_df[sku_df["Classification"]=="✅ Full Size"].copy()
         cut_df2 = sku_df[sku_df["Classification"]=="✂️ Cut Size"].copy()
-        total_sku  = len(sku_df)
-        full_count = len(full_df)
-        cut_count  = len(cut_df2)
-        full_pct   = round(full_count/total_sku*100,1) if total_sku>0 else 0
+        # Unique SKUs = unique Item IDs
+        unique_skus = sku_df["Article No"].nunique()
+        total_sku   = unique_skus
+        full_count  = full_df["Article No"].nunique()
+        cut_count   = cut_df2["Article No"].nunique()
+        full_pct    = round(full_count/total_sku*100,1) if total_sku>0 else 0
 
         # KPI Cards
         k1f,k2f,k3f,k4f = st.columns(4)
@@ -798,7 +796,7 @@ with t6:
         st.markdown("<br>", unsafe_allow_html=True)
         sec("✅ Full Size SKUs — All expected sizes present (Qty ≥ 1)")
         if len(full_df) > 0:
-            fs_show = full_df[["Brand","Gender","Division","Article No","Store Count","Total Qty","Size Count","Sizes"]].sort_values(["Brand","Gender"])
+            fs_show = full_df[["Store","Brand","Gender","Division","Article No","Total Qty","Size Count","Sizes"]].sort_values(["Store","Brand","Gender"])
             st.dataframe(
                 fs_show.style.apply(lambda x: ["background-color:#dcfce7;color:#166534"]*len(x),axis=1),
                 use_container_width=True,hide_index=True)
@@ -809,7 +807,7 @@ with t6:
         st.markdown("<br>", unsafe_allow_html=True)
         sec("✂️ Cut Size SKUs — Any expected size missing (Qty = 0)")
         if len(cut_df2) > 0:
-            cs_show = cut_df2[["Brand","Gender","Division","Article No","Store Count","Total Qty","Size Count","Sizes"]].sort_values(["Brand","Gender"])
+            cs_show = cut_df2[["Store","Brand","Gender","Division","Article No","Total Qty","Size Count","Sizes"]].sort_values(["Store","Brand","Gender"])
             st.dataframe(
                 cs_show.style.apply(lambda x: ["background-color:#fee2e2;color:#991b1b"]*len(x),axis=1),
                 use_container_width=True,hide_index=True)
