@@ -278,11 +278,18 @@ def process(file):
         MONTHS_ORDER = sorted(sale['Month'].dropna().unique().tolist())
         MONTH_SHORT  = [str(m)[:3] for m in MONTHS_ORDER]
 
+    # Season column normalize
+    if 'Season' in stock.columns:
+        stock['Season'] = stock['Season'].fillna('Unknown').astype(str).str.strip()
+    else:
+        stock['Season'] = 'Unknown'
+
     all_stores  = sorted(set(sale['Store Name'].dropna()) | set(stock['Store Name'].dropna()))
+    all_seasons = sorted(stock['Season'].dropna().unique().tolist())
     grand_sale  = sale['NetSale'].sum()
     grand_stock = stock['StockValue'].sum()
     grand_qty   = stock['Closing Qty'].sum()
-    return sale, stock, all_stores, grand_sale, grand_stock, grand_qty, MONTHS_ORDER, MONTH_SHORT
+    return sale, stock, all_stores, all_seasons, grand_sale, grand_stock, grand_qty, MONTHS_ORDER, MONTH_SHORT
 
 # ══ CACHED HELPERS ══
 @st.cache_data(show_spinner=False)
@@ -341,7 +348,23 @@ if not st.session_state.ready:
     </div>""", unsafe_allow_html=True)
     st.stop()
 
-sale, stock, all_stores, grand_sale, grand_stock, grand_qty, MONTHS_ORDER, MONTH_SHORT = st.session_state.data
+sale, stock, all_stores, all_seasons, grand_sale, grand_stock, grand_qty, MONTHS_ORDER, MONTH_SHORT = st.session_state.data
+
+# ══ GLOBAL SEASON FILTER ══
+sf1, sf2, sf3 = st.columns([1, 2, 1])
+with sf2:
+    season_opts = ["🌐 All Seasons"] + all_seasons
+    sel_season = st.selectbox("🗓️ Filter by Season", season_opts, key="global_season")
+
+# Apply season filter to stock
+if sel_season != "🌐 All Seasons":
+    stock_filtered = stock[stock['Season'] == sel_season].copy()
+else:
+    stock_filtered = stock.copy()
+
+# Recalculate stock KPIs after season filter
+grand_stock = stock_filtered['StockValue'].sum()
+grand_qty   = stock_filtered['Closing Qty'].sum()
 
 # ══ KPIs ══
 top_store = sale.groupby('Store Name')['NetSale'].sum().idxmax()
@@ -358,7 +381,8 @@ else:
 
 k1,k2,k3,k4,k5 = st.columns(5)
 kpi_card(k1,"Total Sale",    fmt_lac(grand_sale),    f"{date_range} · {len(all_stores)} Stores","💰")
-kpi_card(k2,"Closing Stock", fmt_lac(grand_stock),   f"{get_month_short(MONTHS_ORDER[-1]) if MONTHS_ORDER else ''} · {int(grand_qty):,} Pcs","📦")
+season_label = sel_season if sel_season != "🌐 All Seasons" else "All Seasons"
+kpi_card(k2,"Closing Stock", fmt_lac(grand_stock),   f"{season_label} · {int(grand_qty):,} Pcs","📦")
 kpi_card(k3,"Top Store",     top_store[:22],          fmt_lac(top_store_val),"🏆")
 kpi_card(k4,"Top Brand",     top_brand,               fmt_lac(top_brand_val),"🏷️")
 kpi_card(k5,"Brands",        str(len(sale['Brand'].unique())), "Active Brands","⭐")
@@ -444,8 +468,8 @@ with t2:
     sec("🏪 Store-wise Monthly Sale")
     swc = sale.pivot_table(index='Store Name',columns='Month',values='NetSale',aggfunc='sum').reindex(columns=MONTHS_ORDER).fillna(0)
     swc['Total Sale']    = swc[MONTHS_ORDER].sum(axis=1)
-    swc['Closing Stock'] = stock.groupby('Store Name')['StockValue'].sum()
-    swc['Closing Qty']   = stock.groupby('Store Name')['Closing Qty'].sum()
+    swc['Closing Stock'] = stock_filtered.groupby('Store Name')['StockValue'].sum()
+    swc['Closing Qty']   = stock_filtered.groupby('Store Name')['Closing Qty'].sum()
     swc['Sale Cont.']    = swc['Total Sale'] / swc['Total Sale'].sum()
 
     top5s = swc['Total Sale'].nlargest(5).index.tolist()
@@ -476,8 +500,8 @@ with t3:
     sec("🏷️ Brand-wise Monthly Sale Trend")
     bwc = sale.pivot_table(index='Brand',columns='Month',values='NetSale',aggfunc='sum').reindex(columns=MONTHS_ORDER).fillna(0)
     bwc['Total Sale']    = bwc[MONTHS_ORDER].sum(axis=1)
-    bwc['Closing Stock'] = stock.groupby('Brand')['StockValue'].sum()
-    bwc['Closing Qty']   = stock.groupby('Brand')['Closing Qty'].sum()
+    bwc['Closing Stock'] = stock_filtered.groupby('Brand')['StockValue'].sum()
+    bwc['Closing Qty']   = stock_filtered.groupby('Brand')['Closing Qty'].sum()
     bwc['Sale Cont.']    = bwc['Total Sale'] / bwc['Total Sale'].sum()
     bwc = bwc.sort_values('Total Sale',ascending=False)
 
@@ -536,7 +560,7 @@ with t3:
 # ══ TAB 4: GENDER-WISE ══
 with t4:
     gdr_s = sale.groupby('Gender')['NetSale'].sum().sort_values(ascending=False)
-    gdr_k = stock.groupby('Gender')['StockValue'].sum()
+    gdr_k = stock_filtered.groupby('Gender')['StockValue'].sum()
 
     ga,gb = st.columns(2)
     with ga:
@@ -580,7 +604,7 @@ with t4:
 # ══ TAB 5: CATEGORY ══
 with t5:
     div_s = sale.groupby('Division')['NetSale'].sum().sort_values(ascending=False)
-    div_k = stock.groupby('Division')['StockValue'].sum()
+    div_k = stock_filtered.groupby('Division')['StockValue'].sum()
     da,db = st.columns(2)
     with da:
         sec("🗂️ Division-wise Sale")
@@ -605,7 +629,7 @@ with t5:
         st.plotly_chart(fig_dvk, use_container_width=True)
 
     cat_s = sale.groupby('Category')['NetSale'].sum().sort_values(ascending=False)
-    cat_k = stock.groupby('Category')['StockValue'].sum()
+    cat_k = stock_filtered.groupby('Category')['StockValue'].sum()
     ca5,cb5 = st.columns(2)
     with ca5:
         sec("📦 Category-wise Sale")
@@ -656,12 +680,12 @@ with t5:
 with t6:
     sec("✂️ Full Size & Cut Size SKU Analysis")
     fc1, fc2, fc3, fc4 = st.columns(4)
-    with fc1: fs_store = st.selectbox("🏪 Filter by Store", ["All"] + sorted(stock["Store Name"].dropna().unique()), key="fs_store")
-    with fc2: fs_brand = st.selectbox("🏷️ Filter by Brand", ["All"] + sorted(stock["Brand"].dropna().unique()), key="fs_brand")
+    with fc1: fs_store = st.selectbox("🏪 Filter by Store", ["All"] + sorted(stock_filtered["Store Name"].dropna().unique()), key="fs_store")
+    with fc2: fs_brand = st.selectbox("🏷️ Filter by Brand", ["All"] + sorted(stock_filtered["Brand"].dropna().unique()), key="fs_brand")
     with fc3: fs_gender = st.selectbox("👤 Filter by Gender", ["All", "MEN", "WOMEN", "KIDS"], key="fs_gender")
     with fc4: fs_div = st.selectbox("📦 Filter by Division", ["All"] + DIVISIONS, key="fs_div")
 
-    stk_fs = stock.copy()
+    stk_fs = stock_filtered.copy()
     if fs_store  != "All": stk_fs = stk_fs[stk_fs["Store Name"] == fs_store]
     if fs_brand  != "All": stk_fs = stk_fs[stk_fs["Brand"]      == fs_brand]
     if fs_gender != "All": stk_fs = stk_fs[stk_fs["Gender"]     == fs_gender]
@@ -808,7 +832,7 @@ with t6:
     st.markdown("---")
     sz_div = st.selectbox("Select Division for Size Analysis", DIVISIONS, key="sz_div")
     sale_sz  = sale[sale['Division']==sz_div].copy()
-    stock_sz = stock[stock['Division']==sz_div].copy()
+    stock_sz = stock_filtered[stock_filtered['Division']==sz_div].copy()
 
     if sz_div == 'FOOTWEAR':
         sale_sz  = sale_sz[sale_sz['Size'].apply(is_fw)].copy()
@@ -982,7 +1006,7 @@ with t8:
     dd_st = st.selectbox("Select Store", sorted(sale['Store Name'].unique()), key="dd_s")
     if dd_st:
         ss = get_store_sale(sale, dd_st)
-        sk = get_store_stock(stock, dd_st)
+        sk = get_store_stock(stock_filtered, dd_st)
         ts = ss['NetSale'].sum(); tk = sk['StockValue'].sum()
         tq = sk['Closing Qty'].sum()
         rank = int(sale.groupby('Store Name')['NetSale'].sum().rank(ascending=False)[dd_st])
@@ -1143,7 +1167,7 @@ with t10:
     for s10 in strs10:
         for c10 in cats10:
             sv = float(sale[(sale['Store Name']==s10)&(sale['Category']==c10)]['NetSale'].sum())
-            kv = float(stock[(stock['Store Name']==s10)&(stock['Category']==c10)]['StockValue'].sum())
+            kv = float(stock_filtered[(stock_filtered['Store Name']==s10)&(stock_filtered['Category']==c10)]['StockValue'].sum())
             t  = sv+kv
             stm.loc[s10,c10] = round(sv/t*100,1) if t>0 else 0
     stm = stm.fillna(0).astype(float)
@@ -1174,12 +1198,12 @@ with t10:
     for s10 in strs10:
         for c10 in cats10:
             sv = float(sale[(sale['Store Name']==s10)&(sale['Category']==c10)]['NetSale'].sum())
-            kv = float(stock[(stock['Store Name']==s10)&(stock['Category']==c10)]['StockValue'].sum())
+            kv = float(stock_filtered[(stock_filtered['Store Name']==s10)&(stock_filtered['Category']==c10)]['StockValue'].sum())
             t  = sv+kv
             if t>0 and sv>5 and sv/t*100>=80: restock.append(f"{s10} → {c10}")
             if sv==0 and kv>0: dead.append(f"{s10} → {c10}")
 
-    dead_val = sum([float(stock[(stock['Store Name']==r.split(' → ')[0])&(stock['Category']==r.split(' → ')[1])]['StockValue'].sum()) for r in dead])
+    dead_val = sum([float(stock_filtered[(stock_filtered['Store Name']==r.split(' → ')[0])&(stock_filtered['Category']==r.split(' → ')[1])]['StockValue'].sum()) for r in dead])
 
     st.markdown(f"""<div style="background:#f8faff;border:1.5px solid #c7d7f9;border-radius:12px;
         padding:1rem 1.2rem;margin-bottom:1.2rem">
@@ -1212,8 +1236,8 @@ with t10:
     for s10 in strs10:
         for c10 in cats10:
             sv = float(sale[(sale['Store Name']==s10)&(sale['Category']==c10)]['NetSale'].sum())
-            kv = float(stock[(stock['Store Name']==s10)&(stock['Category']==c10)]['StockValue'].sum())
-            kq = int(stock[(stock['Store Name']==s10)&(stock['Category']==c10)]['Closing Qty'].sum())
+            kv = float(stock_filtered[(stock_filtered['Store Name']==s10)&(stock_filtered['Category']==c10)]['StockValue'].sum())
+            kq = int(stock_filtered[(stock_filtered['Store Name']==s10)&(stock_filtered['Category']==c10)]['Closing Qty'].sum())
             t  = sv+kv
             if t==0: continue
             r = sv/t*100
@@ -1240,7 +1264,7 @@ with t11:
         <div style="font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;
             color:rgba(255,255,255,.7);margin-bottom:.3rem">HOW IT WORKS</div>
         <div style="font-size:.85rem">AI analyses stores, brands, categories, genders, sizes,
-        sell-through and dead stock — generates smart action plan.</div>
+        sell-through and dead stock_filtered — generates smart action plan.</div>
     </div>""", unsafe_allow_html=True)
 
     mall_ai  = sale.groupby('Month')['NetSale'].sum().reindex(MONTHS_ORDER).fillna(0)
