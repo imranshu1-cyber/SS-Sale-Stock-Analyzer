@@ -1053,7 +1053,8 @@ def get_all_store_totals(sale_df):
 
 store_totals = get_all_store_totals(sale)
 
-with t8:
+@st.fragment
+def store_deep_dive():
     sec("🔍 Store Deep Dive")
     dd_st = st.selectbox("Select Store", sorted(sale['Store Name'].unique()), key="dd_s")
     if dd_st:
@@ -1139,6 +1140,9 @@ with t8:
         sd['StockValue']  = sd['StockValue'].apply(lambda x: round(x,2) if x!=0 else "")
         sd['Closing Qty'] = sd['Closing Qty'].apply(lambda x: int(x) if x!=0 else "")
         st.dataframe(sd, use_container_width=True)
+
+with t8:
+    store_deep_dive()
 
 # ══ TAB 9: PERFORMANCE ══
 with t9:
