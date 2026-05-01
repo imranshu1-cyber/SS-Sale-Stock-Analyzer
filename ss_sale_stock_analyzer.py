@@ -293,6 +293,7 @@ def process(file):
 
 # ══ CACHED HELPERS ══
 @st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False)
 def get_store_sale(sale_df, store):
     return sale_df[sale_df['Store Name']==store].copy()
 
