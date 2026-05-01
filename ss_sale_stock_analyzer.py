@@ -12,7 +12,6 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 *, *::before, *::after { font-family: 'Inter', sans-serif !important; box-sizing: border-box; }
 .stApp { background: #f4f0ff !important; }
-/* ══ FILE UPLOADER ══ */
 [data-testid="stFileUploader"] {
     background: #ffffff !important;
     border: none !important;
@@ -65,13 +64,10 @@ st.markdown("""
     font-size: 12px !important;
     font-weight: 700 !important;
 }
-[data-testid="stFileUploadDeleteBtn"] button:hover {
-    background: #fecaca !important;
-}
+[data-testid="stFileUploadDeleteBtn"] button:hover { background: #fecaca !important; }
 [data-testid="stFileUploadDeleteBtn"] svg { fill: #dc2626 !important; }
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 0.8rem !important; padding-bottom: 1rem !important; }
-
 .hero {
     padding: 0.55rem 1.4rem; display: flex; align-items: center; gap: 1rem;
     background: linear-gradient(90deg, #3a0068 0%, #6a1b9a 55%, #9c27b0 100%);
@@ -86,7 +82,6 @@ st.markdown("""
 .hero-title { font-family:'Plus Jakarta Sans',sans-serif !important; font-size:1.05rem; font-weight:800; color:#ffffff; }
 .hero-sub-line { font-family:'Plus Jakarta Sans',sans-serif !important; font-size:.8rem; font-weight:600; color:#e8c8ff; }
 .hero-sub { color:rgba(255,255,255,0.52); font-size:.65rem; font-weight:400; }
-
 .kpi-card {
     background: linear-gradient(135deg, #6a1b9a 0%, #9c27b0 100%);
     border-radius: 16px; padding: 1.1rem 1.3rem;
@@ -95,17 +90,14 @@ st.markdown("""
 .kpi-label { font-size:.58rem; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:rgba(255,255,255,0.75); margin-bottom:.4rem; }
 .kpi-value { font-family:'Plus Jakarta Sans',sans-serif !important; font-size:1.3rem; font-weight:800; color:#ffffff; line-height:1.1; }
 .kpi-sub { font-size:.72rem; color:rgba(255,255,255,0.7); margin-top:.25rem; }
-
 .section-title {
     font-size:.63rem; font-weight:700; letter-spacing:2.5px; text-transform:uppercase;
     color:#6a1b9a; padding:.4rem 0; margin-bottom:.7rem;
     border-bottom: 2px solid #ddd6fe;
 }
-
 p { color:#1a0030 !important; font-size:.9rem !important; }
 label { color:#3d0066 !important; font-weight:600 !important; }
 [data-testid="stWidgetLabel"] p { color:#6a1b9a !important; font-weight:600 !important; }
-
 .stSelectbox > div > div, .stMultiSelect > div > div {
     background:#ffffff !important; border:1.5px solid #c084fc !important;
     border-radius:10px !important; color:#1a0030 !important;
@@ -114,7 +106,6 @@ label { color:#3d0066 !important; font-weight:600 !important; }
 [data-baseweb="popover"] * { color:#1a0030 !important; background:#fff !important; }
 [data-baseweb="tag"] { background:#ede9fe !important; }
 [data-baseweb="tag"] span { color:#4c1d95 !important; font-weight:600 !important; }
-
 .stButton > button {
     background: linear-gradient(135deg,#6a1b9a,#9c27b0) !important;
     color:#ffffff !important; border:none !important; border-radius:12px !important;
@@ -126,8 +117,6 @@ label { color:#3d0066 !important; font-weight:600 !important; }
     background:#fff !important; color:#6a1b9a !important;
     border:2px solid #6a1b9a !important; border-radius:10px !important; font-weight:700 !important;
 }
-
-
 .stTabs [data-baseweb="tab-list"] {
     background:#fff !important; border-radius:12px !important; padding:4px !important;
     border:1.5px solid #ddd6fe !important;
@@ -140,9 +129,43 @@ div[data-testid="stDataFrame"] * { color:#1a0030 !important; font-size:.84rem !i
 </style>
 """, unsafe_allow_html=True)
 
+# ══ DYNAMIC MONTH HELPERS ══
+MONTH_MAP = {
+    'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,'june':6,
+    'jul':7,'july':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12,'march':3
+}
+MONTH_SHORT_MAP = {
+    'jan':'Jan','feb':'Feb','mar':'Mar','apr':'Apr','may':'May','jun':'Jun',
+    'june':'Jun','jul':'Jul','july':'Jul','aug':'Aug','sep':'Sep',
+    'oct':'Oct','nov':'Nov','dec':'Dec','march':'Mar'
+}
+
+def parse_month_order(months_series):
+    parsed = []
+    for m in months_series.dropna().unique():
+        m = str(m).strip()
+        match = re.match(r"([A-Za-z]+)['\s]?(\d{2,4})", m)
+        if match:
+            mon_str = match.group(1).lower()
+            yr_str  = match.group(2)
+            yr = int(yr_str) if len(yr_str)==4 else 2000+int(yr_str)
+            mon_num = MONTH_MAP.get(mon_str, 0)
+            if mon_num > 0:
+                parsed.append((yr*100 + mon_num, m))
+    parsed.sort(key=lambda x: x[0])
+    return [x[1] for x in parsed]
+
+def get_month_short(m):
+    match = re.match(r"([A-Za-z]+)['\s]?(\d{2,4})", str(m).strip())
+    if match:
+        return MONTH_SHORT_MAP.get(match.group(1).lower(), match.group(1)[:3].capitalize())
+    return str(m)[:3]
+
+# Will be set dynamically after data load
+MONTHS_ORDER = []
+MONTH_SHORT  = []
+
 # ══ CONSTANTS ══
-MONTHS_ORDER = ["Apr'25","May'25","June'25","Jul'25","Aug'25","Sep'25","Oct'25","Nov'25","Dec'25","Jan'26","Feb'26"]
-MONTH_SHORT  = ["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb"]
 BRANDS_MAIN  = ['ADIDAS','ASICS','CROCS','DCYPHR','LEVIS','NIKE','OTHERS','PUMA','SKECHERS']
 DIVISIONS    = ['FOOTWEAR','APPAREL','ACCESSORIES']
 CATEGORIES   = ['LIFESTYLE','RUNNING/TRAINING','SOCCER & SPORTS','WALKING','MOTORSPORT','ACTIVE WEAR']
@@ -174,7 +197,6 @@ def pct(v, dec=2):
     return f"{float(v)*100:.{dec}f}%"
 
 def cl(height=380, title="", xangle=0, show_legend=True, margin=None):
-    """chart_layout — clean, no conflicts"""
     m = margin or dict(l=10, r=10, t=55, b=40)
     return dict(
         paper_bgcolor="rgba(255,255,255,1)",
@@ -223,6 +245,7 @@ AP_REV   = {i:s for i,s in enumerate(AP_ORDER)}
 # ══ PROCESS ══
 @st.cache_data(show_spinner=False)
 def process(file):
+    global MONTHS_ORDER, MONTH_SHORT
     stock = pd.read_excel(file, sheet_name="STOCK REPORT", header=1)
     sale  = pd.read_excel(file, sheet_name="SALE REPORT",  header=1)
     stock.columns = [str(c).strip() for c in stock.columns]
@@ -243,17 +266,23 @@ def process(file):
     for c in ['Sale Qty','NetSale','MrpValue','Disc value']:
         if c in sale.columns:  sale[c]  = pd.to_numeric(sale[c],  errors='coerce').fillna(0)
 
-    # Values already in Lacs — keep as is
     stock['Brand']  = stock['Brand'].apply(normalize_brand)
     sale['Brand']   = sale['Brand'].apply(normalize_brand)
     stock['Gender'] = stock['Gender'].str.upper().str.strip()
     sale['Gender']  = sale['Gender'].str.upper().str.strip()
 
+    # ── DYNAMIC MONTH ORDER ──
+    MONTHS_ORDER = parse_month_order(sale['Month'])
+    MONTH_SHORT  = [get_month_short(m) for m in MONTHS_ORDER]
+    if not MONTHS_ORDER:
+        MONTHS_ORDER = sorted(sale['Month'].dropna().unique().tolist())
+        MONTH_SHORT  = [str(m)[:3] for m in MONTHS_ORDER]
+
     all_stores  = sorted(set(sale['Store Name'].dropna()) | set(stock['Store Name'].dropna()))
     grand_sale  = sale['NetSale'].sum()
     grand_stock = stock['StockValue'].sum()
     grand_qty   = stock['Closing Qty'].sum()
-    return sale, stock, all_stores, grand_sale, grand_stock, grand_qty
+    return sale, stock, all_stores, grand_sale, grand_stock, grand_qty, MONTHS_ORDER, MONTH_SHORT
 
 # ══ CACHED HELPERS ══
 @st.cache_data(show_spinner=False)
@@ -312,7 +341,7 @@ if not st.session_state.ready:
     </div>""", unsafe_allow_html=True)
     st.stop()
 
-sale, stock, all_stores, grand_sale, grand_stock, grand_qty = st.session_state.data
+sale, stock, all_stores, grand_sale, grand_stock, grand_qty, MONTHS_ORDER, MONTH_SHORT = st.session_state.data
 
 # ══ KPIs ══
 top_store = sale.groupby('Store Name')['NetSale'].sum().idxmax()
@@ -320,9 +349,16 @@ top_brand = sale.groupby('Brand')['NetSale'].sum().idxmax()
 top_store_val = sale.groupby('Store Name')['NetSale'].sum().max()
 top_brand_val = sale.groupby('Brand')['NetSale'].sum().max()
 
+# Dynamic date range for KPI
+if MONTHS_ORDER:
+    first_m = MONTHS_ORDER[0]; last_m = MONTHS_ORDER[-1]
+    date_range = f"{get_month_short(first_m)}'{first_m[-2:]}–{get_month_short(last_m)}'{last_m[-2:]}"
+else:
+    date_range = "All Months"
+
 k1,k2,k3,k4,k5 = st.columns(5)
-kpi_card(k1,"Total Sale",    fmt_lac(grand_sale),    f"Apr'25–Feb'26 · {len(all_stores)} Stores","💰")
-kpi_card(k2,"Closing Stock", fmt_lac(grand_stock),   f"Feb 2026 · {int(grand_qty):,} Pcs","📦")
+kpi_card(k1,"Total Sale",    fmt_lac(grand_sale),    f"{date_range} · {len(all_stores)} Stores","💰")
+kpi_card(k2,"Closing Stock", fmt_lac(grand_stock),   f"{get_month_short(MONTHS_ORDER[-1]) if MONTHS_ORDER else ''} · {int(grand_qty):,} Pcs","📦")
 kpi_card(k3,"Top Store",     top_store[:22],          fmt_lac(top_store_val),"🏆")
 kpi_card(k4,"Top Brand",     top_brand,               fmt_lac(top_brand_val),"🏷️")
 kpi_card(k5,"Brands",        str(len(sale['Brand'].unique())), "Active Brands","⭐")
@@ -347,7 +383,7 @@ with t1:
         text=[fmt_lac(v) for v in monthly.values],
         textposition='outside', textfont=dict(size=11,color='#1a0030'),
     ))
-    fig.update_layout(**cl(380,"Monthly Net Sale — All Stores (Apr'25–Feb'26)",
+    fig.update_layout(**cl(380,f"Monthly Net Sale — All Stores ({date_range})",
         margin=dict(l=10,r=10,t=55,b=40)),
         bargap=0.3, yaxis_range=[0,monthly.max()*1.22],
         annotations=[
@@ -363,7 +399,7 @@ with t1:
         (i1,"📈 Best Month",  MONTH_SHORT[bi],         fmt_lac(monthly.values[bi])),
         (i2,"📉 Lowest Month",MONTH_SHORT[wi],         fmt_lac(monthly.values[wi])),
         (i3,"📊 Avg Monthly", fmt_lac(avg_m),          "Per month average"),
-        (i4,"🚀 Apr→Feb",     f"{feb_g:+.1f}%",        "Growth trend"),
+        (i4,f"🚀 {MONTH_SHORT[0]}→{MONTH_SHORT[-1]}", f"{feb_g:+.1f}%", "Growth trend"),
     ]:
         with col:
             st.markdown(f"""<div style="background:#fff;border-radius:12px;padding:.9rem 1.1rem;
@@ -618,38 +654,24 @@ with t5:
 
 # ══ TAB 6: SIZE & CUT SIZE ══
 with t6:
-
-    # ── FULL SIZE vs CUT SIZE SECTION ──
     sec("✂️ Full Size & Cut Size SKU Analysis")
-
-    # Filters
     fc1, fc2, fc3, fc4 = st.columns(4)
-    with fc1:
-        fs_store = st.selectbox("🏪 Filter by Store", ["All"] + sorted(stock["Store Name"].dropna().unique()), key="fs_store")
-    with fc2:
-        fs_brand = st.selectbox("🏷️ Filter by Brand", ["All"] + sorted(stock["Brand"].dropna().unique()), key="fs_brand")
-    with fc3:
-        fs_gender = st.selectbox("👤 Filter by Gender", ["All", "MEN", "WOMEN", "KIDS"], key="fs_gender")
-    with fc4:
-        fs_div = st.selectbox("📦 Filter by Division", ["All"] + DIVISIONS, key="fs_div")
+    with fc1: fs_store = st.selectbox("🏪 Filter by Store", ["All"] + sorted(stock["Store Name"].dropna().unique()), key="fs_store")
+    with fc2: fs_brand = st.selectbox("🏷️ Filter by Brand", ["All"] + sorted(stock["Brand"].dropna().unique()), key="fs_brand")
+    with fc3: fs_gender = st.selectbox("👤 Filter by Gender", ["All", "MEN", "WOMEN", "KIDS"], key="fs_gender")
+    with fc4: fs_div = st.selectbox("📦 Filter by Division", ["All"] + DIVISIONS, key="fs_div")
 
-    # Apply filters
     stk_fs = stock.copy()
     if fs_store  != "All": stk_fs = stk_fs[stk_fs["Store Name"] == fs_store]
     if fs_brand  != "All": stk_fs = stk_fs[stk_fs["Brand"]      == fs_brand]
     if fs_gender != "All": stk_fs = stk_fs[stk_fs["Gender"]     == fs_gender]
     if fs_div    != "All": stk_fs = stk_fs[stk_fs["Division"]   == fs_div]
 
-    # Dynamic description based on filters
     if fs_div == "FOOTWEAR":
-        if fs_gender == "WOMEN":
-            size_info = "Women Footwear sizes checked: <b>4, 5, 6, 7</b>"
-        else:
-            size_info = "Men Footwear sizes checked: <b>7, 8, 9, 10</b>"
-    elif fs_div == "APPAREL":
-        size_info = "Apparel sizes checked: <b>S, M, L</b>"
-    else:
-        size_info = "Footwear Men: <b>7,8,9,10</b> &nbsp;·&nbsp; Footwear Women: <b>4,5,6,7</b> &nbsp;·&nbsp; Apparel: <b>S, M, L</b>"
+        if fs_gender == "WOMEN": size_info = "Women Footwear sizes checked: <b>4, 5, 6, 7</b>"
+        else: size_info = "Men Footwear sizes checked: <b>7, 8, 9, 10</b>"
+    elif fs_div == "APPAREL": size_info = "Apparel sizes checked: <b>S, M, L</b>"
+    else: size_info = "Footwear Men: <b>7,8,9,10</b> &nbsp;·&nbsp; Footwear Women: <b>4,5,6,7</b> &nbsp;·&nbsp; Apparel: <b>S, M, L</b>"
 
     st.markdown(f"""<div style="background:#f8faff;border:1.5px solid #c7d7f9;border-radius:8px;
         padding:.6rem 1rem;font-size:.8rem;color:#1e40af;margin-bottom:.8rem">
@@ -659,8 +681,7 @@ with t6:
     </div>""", unsafe_allow_html=True)
 
     def get_sz_label(row):
-        div = row.get("Division","")
-        sz  = str(row.get("Size",""))
+        div = row.get("Division",""); sz = str(row.get("Size",""))
         if div == "FOOTWEAR":
             try:
                 v = float(sz.replace("½",".5"))
@@ -672,67 +693,49 @@ with t6:
 
     stk_fs = stk_fs.copy()
     stk_fs["SzLabel"] = stk_fs.apply(get_sz_label, axis=1)
-    # Do NOT filter out NaN SzLabel — keep all articles
 
-    # Per Store + Brand + Article → classify
-    # Expected sizes
-    FW_MEN      = ['7', '8', '9', '10']
-    FW_WOMEN    = ['4', '5', '6', '7']
-    AP_EXPECTED = ['S', 'M', 'L']
+    FW_MEN = ['7','8','9','10']; FW_WOMEN = ['4','5','6','7']; AP_EXPECTED = ['S','M','L']
 
-    # SKU classification: Store + Item ID level (each store checked separately)
     sku_rows = []
     for (store, article, brand), grp_df in stk_fs.groupby(["Store Name","Item ID","Brand"]):
-        sizes     = grp_df["SzLabel"].tolist()
-        qtys      = grp_df["Closing Qty"].tolist()
+        sizes = grp_df["SzLabel"].tolist(); qtys = grp_df["Closing Qty"].tolist()
         total_qty = sum(qtys)
-        div       = grp_df["Division"].iloc[0] if "Division" in grp_df.columns else ""
-        gender    = str(grp_df["Gender"].iloc[0]).upper().strip() if "Gender" in grp_df.columns else ""
-
-        # Build size->qty map (unique sizes, aggregate qty)
+        div = grp_df["Division"].iloc[0] if "Division" in grp_df.columns else ""
+        gender = str(grp_df["Gender"].iloc[0]).upper().strip() if "Gender" in grp_df.columns else ""
         sz_qty = {}
         for s, q in zip(sizes, qtys):
             if s is not None and str(s).strip() != 'nan':
                 sz_qty[str(s).strip().upper()] = sz_qty.get(str(s).strip().upper(), 0) + q
-
         if div == "FOOTWEAR":
             expected = FW_WOMEN if gender == "WOMEN" else FW_MEN
             is_cut = any(sz_qty.get(s, 0) == 0 for s in expected)
         elif div == "APPAREL":
             is_cut = any(sz_qty.get(s, 0) == 0 for s in AP_EXPECTED)
-        else:
-            is_cut = False
-
+        else: is_cut = False
         cls = "✂️ Cut Size" if is_cut else "✅ Full Size"
-        sku_rows.append({
-            "Store": store, "Brand": brand, "Article No": article,
-            "Gender": gender, "Division": div,
-            "Total Qty": int(total_qty),
+        sku_rows.append({"Store": store, "Brand": brand, "Article No": article,
+            "Gender": gender, "Division": div, "Total Qty": int(total_qty),
             "Sizes": ", ".join([f"{s}:{sz_qty[s]}" for s in sorted(sz_qty.keys(), key=lambda x: (float(x) if x.replace('.','').isdigit() else 99))]),
-            "Size Count": len(sz_qty),
-            "Classification": cls,
-        })
+            "Size Count": len(sz_qty), "Classification": cls})
 
     if not sku_rows:
         st.warning("No data for selected filters.")
     else:
-        sku_df  = pd.DataFrame(sku_rows)
+        sku_df = pd.DataFrame(sku_rows)
         full_df = sku_df[sku_df["Classification"]=="✅ Full Size"].copy()
         cut_df2 = sku_df[sku_df["Classification"]=="✂️ Cut Size"].copy()
-        # Unique SKUs = unique Item IDs
         unique_skus = sku_df["Article No"].nunique()
-        total_sku   = unique_skus
-        full_count  = full_df["Article No"].nunique()
-        cut_count   = cut_df2["Article No"].nunique()
-        full_pct    = round(full_count/total_sku*100,1) if total_sku>0 else 0
+        total_sku = unique_skus
+        full_count = full_df["Article No"].nunique()
+        cut_count  = cut_df2["Article No"].nunique()
+        full_pct   = round(full_count/total_sku*100,1) if total_sku>0 else 0
 
-        # KPI Cards
         k1f,k2f,k3f,k4f = st.columns(4)
         for col,lbl,val,sub,icon,col_bg in [
-            (k1f,"Total SKUs",     str(total_sku),  f"Filters: {fs_store} | {fs_brand} | {fs_gender} | {fs_div}",         "📦","linear-gradient(135deg,#6a1b9a,#9c27b0)"),
-            (k2f,"Full Size SKUs", str(full_count), f"{full_pct}% of total",           "✅","linear-gradient(135deg,#166534,#16a34a)"),
-            (k3f,"Cut Size SKUs",  str(cut_count),  f"{100-full_pct:.1f}% of total",   "✂️","linear-gradient(135deg,#991b1b,#dc2626)"),
-            (k4f,"Avg Sizes/SKU",  f"{sku_df['Size Count'].mean():.1f}", "Avg sizes per article","📐","linear-gradient(135deg,#1e40af,#3b82f6)"),
+            (k1f,"Total SKUs",str(total_sku),f"Filters: {fs_store} | {fs_brand} | {fs_gender} | {fs_div}","📦","linear-gradient(135deg,#6a1b9a,#9c27b0)"),
+            (k2f,"Full Size SKUs",str(full_count),f"{full_pct}% of total","✅","linear-gradient(135deg,#166534,#16a34a)"),
+            (k3f,"Cut Size SKUs",str(cut_count),f"{100-full_pct:.1f}% of total","✂️","linear-gradient(135deg,#991b1b,#dc2626)"),
+            (k4f,"Avg Sizes/SKU",f"{sku_df['Size Count'].mean():.1f}","Avg sizes per article","📐","linear-gradient(135deg,#1e40af,#3b82f6)"),
         ]:
             with col:
                 st.markdown(f"""<div style="background:{col_bg};border-radius:14px;
@@ -743,8 +746,6 @@ with t6:
                 </div>""", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-
-        # Charts
         ch1,ch2 = st.columns(2)
         with ch1:
             sec("📊 Full Size vs Cut Size Count")
@@ -759,14 +760,12 @@ with t6:
 
         with ch2:
             sec("🏪 Store-wise Full vs Cut Size")
-            # Build store-wise classification using original stock data
             store_sku = []
             stk_for_chart = stk_fs.copy()
             for (st_name, article, brand), grp_df2 in stk_for_chart.groupby(["Store Name","Item ID","Brand"]):
-                div2    = grp_df2["Division"].iloc[0] if "Division" in grp_df2.columns else ""
+                div2 = grp_df2["Division"].iloc[0] if "Division" in grp_df2.columns else ""
                 gender2 = str(grp_df2["Gender"].iloc[0]).upper().strip() if "Gender" in grp_df2.columns else ""
-                sizes2  = grp_df2["SzLabel"].tolist()
-                qtys2   = grp_df2["Closing Qty"].tolist()
+                sizes2 = grp_df2["SzLabel"].tolist(); qtys2 = grp_df2["Closing Qty"].tolist()
                 sz_qty2 = {}
                 for s2, q2 in zip(sizes2, qtys2):
                     if s2 is not None and str(s2).strip() != 'nan':
@@ -774,10 +773,8 @@ with t6:
                 if div2 == "FOOTWEAR":
                     exp2 = FW_WOMEN if gender2 == "WOMEN" else FW_MEN
                     is_cut2 = any(sz_qty2.get(s, 0) == 0 for s in exp2)
-                elif div2 == "APPAREL":
-                    is_cut2 = any(sz_qty2.get(s, 0) == 0 for s in AP_EXPECTED)
-                else:
-                    is_cut2 = False
+                elif div2 == "APPAREL": is_cut2 = any(sz_qty2.get(s, 0) == 0 for s in AP_EXPECTED)
+                else: is_cut2 = False
                 store_sku.append({"Store": st_name, "Classification": "✂️ Cut Size" if is_cut2 else "✅ Full Size"})
             if store_sku:
                 sg_df = pd.DataFrame(store_sku)
@@ -792,27 +789,21 @@ with t6:
                     barmode="group",bargap=0.2,xaxis_tickangle=-45)
                 st.plotly_chart(fig_sc, use_container_width=True)
 
-        # Full Size Table
         st.markdown("<br>", unsafe_allow_html=True)
         sec("✅ Full Size SKUs — All expected sizes present (Qty ≥ 1)")
         if len(full_df) > 0:
             fs_show = full_df[["Store","Brand","Gender","Division","Article No","Total Qty","Size Count","Sizes"]].sort_values(["Store","Brand","Gender"])
-            st.dataframe(
-                fs_show.style.apply(lambda x: ["background-color:#dcfce7;color:#166534"]*len(x),axis=1),
+            st.dataframe(fs_show.style.apply(lambda x: ["background-color:#dcfce7;color:#166534"]*len(x),axis=1),
                 use_container_width=True,hide_index=True)
-        else:
-            st.info("No Full Size SKUs.")
+        else: st.info("No Full Size SKUs.")
 
-        # Cut Size Table
         st.markdown("<br>", unsafe_allow_html=True)
         sec("✂️ Cut Size SKUs — Any expected size missing (Qty = 0)")
         if len(cut_df2) > 0:
             cs_show = cut_df2[["Store","Brand","Gender","Division","Article No","Total Qty","Size Count","Sizes"]].sort_values(["Store","Brand","Gender"])
-            st.dataframe(
-                cs_show.style.apply(lambda x: ["background-color:#fee2e2;color:#991b1b"]*len(x),axis=1),
+            st.dataframe(cs_show.style.apply(lambda x: ["background-color:#fee2e2;color:#991b1b"]*len(x),axis=1),
                 use_container_width=True,hide_index=True)
-        else:
-            st.success("✅ No Cut Size SKUs!")
+        else: st.success("✅ No Cut Size SKUs!")
 
     st.markdown("---")
     sz_div = st.selectbox("Select Division for Size Analysis", DIVISIONS, key="sz_div")
@@ -998,13 +989,12 @@ with t8:
         cont = ts/grand_sale if grand_sale>0 else 0
 
         m1,m2,m3,m4 = st.columns(4)
-        kpi_card(m1,"Total Sale",    fmt_lac(ts),  "Apr'25–Feb'26","💰")
+        kpi_card(m1,"Total Sale",    fmt_lac(ts),  date_range,"💰")
         kpi_card(m2,"Closing Stock", fmt_lac(tk),  f"{int(tq):,} Pcs","📦")
         kpi_card(m3,"Contribution",  pct(cont,4),  "Of total sale","📊")
         kpi_card(m4,"Store Rank",    f"#{rank}",   f"Out of {sale['Store Name'].nunique()} stores","🏅")
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Month selector
         sel_mon_idx = None
         mon_opts = ["All Months"] + MONTH_SHORT
         sel_mon_label = st.radio("📅 Select Month", mon_opts, horizontal=True, key=f"dd_mon_{dd_st}")
@@ -1031,8 +1021,7 @@ with t8:
             st.plotly_chart(fig_dm, use_container_width=True)
 
         with d2:
-            cd = ss_filter.groupby('Category')['NetSale'].sum()
-            cd = cd[cd>0]
+            cd = ss_filter.groupby('Category')['NetSale'].sum(); cd = cd[cd>0]
             if len(cd)>0:
                 fig_dp = go.Figure(go.Pie(labels=cd.index.tolist(), values=cd.values.tolist(), hole=0.48,
                     marker=dict(colors=CAT_COLORS[:len(cd)], line=dict(color='#fff', width=2)),
@@ -1043,8 +1032,7 @@ with t8:
 
         d3,d4 = st.columns(2)
         with d3:
-            bd = ss_filter.groupby('Brand')['NetSale'].sum().sort_values(ascending=False)
-            bd = bd[bd>0]
+            bd = ss_filter.groupby('Brand')['NetSale'].sum().sort_values(ascending=False); bd = bd[bd>0]
             fig_db = go.Figure(go.Bar(x=bd.index.tolist(), y=bd.values.tolist(),
                 marker=dict(color=CAT_COLORS[:len(bd)], line=dict(width=0)),
                 text=[fmt_lac(v) for v in bd.values], textposition='outside'))
@@ -1053,8 +1041,7 @@ with t8:
             st.plotly_chart(fig_db, use_container_width=True)
 
         with d4:
-            gd = ss_filter.groupby('Gender')['NetSale'].sum().sort_values(ascending=False)
-            gd = gd[gd>0]
+            gd = ss_filter.groupby('Gender')['NetSale'].sum().sort_values(ascending=False); gd = gd[gd>0]
             fig_dg = go.Figure(go.Pie(labels=gd.index.tolist(), values=gd.values.tolist(), hole=0.48,
                 marker=dict(colors=['#7b1fa2','#e91e63','#1565c0','#ff6f00'], line=dict(color='#fff', width=2)),
                 textinfo='label+percent', textfont=dict(size=12, color='#1a0030'),
@@ -1086,12 +1073,11 @@ with t9:
     fig_mom = go.Figure(go.Bar(x=MONTH_SHORT[1:],y=mp,
         marker=dict(color=['#16a34a' if v>=0 else '#dc2626' for v in mp],line=dict(width=0)),
         text=[f"{v:+.1f}%" for v in mp],textposition='outside',textfont=dict(size=12,color='#1a0030')))
-    fig_mom.update_layout(**cl(340,"MoM Sale Growth (%) — All Stores",margin=dict(l=20,r=20,t=55,b=40)),
-        bargap=0.3)
+    fig_mom.update_layout(**cl(340,"MoM Sale Growth (%) — All Stores",margin=dict(l=20,r=20,t=55,b=40)),bargap=0.3)
     fig_mom.update_layout(yaxis=dict(gridcolor='#ede9fe',zeroline=True,zerolinecolor='#9c27b0',zerolinewidth=2))
     st.markdown(f"""<div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1.5px solid #9c27b0;
         border-radius:10px;padding:.5rem 1.1rem;margin-bottom:.5rem;display:inline-block">
-        <span style="font-size:.65rem;font-weight:700;color:#6b21a8;text-transform:uppercase;letter-spacing:2px">📌 APR'25 BASE</span>
+        <span style="font-size:.65rem;font-weight:700;color:#6b21a8;text-transform:uppercase;letter-spacing:2px">📌 {MONTH_SHORT[0].upper()} BASE</span>
         <span style="font-size:1rem;font-weight:800;color:#4c1d95;margin-left:1rem">{fmt_lac(mall.values[0])}</span>
     </div>""", unsafe_allow_html=True)
     st.plotly_chart(fig_mom, use_container_width=True)
@@ -1104,8 +1090,7 @@ with t9:
         fig_t5 = go.Figure(go.Bar(x=t5.values,y=t5.index.tolist(),orientation='h',
             marker=dict(color='#16a34a',line=dict(width=0)),
             text=[fmt_lac(v) for v in t5.values],textposition='outside'))
-        fig_t5.update_layout(**cl(300,"Top 5 Stores",margin=dict(l=10,r=160,t=40,b=20)),
-            xaxis_range=[0,t5.max()*1.45])
+        fig_t5.update_layout(**cl(300,"Top 5 Stores",margin=dict(l=10,r=160,t=40,b=20)),xaxis_range=[0,t5.max()*1.45])
         st.plotly_chart(fig_t5, use_container_width=True)
 
     with p2:
@@ -1114,8 +1099,7 @@ with t9:
         fig_b5 = go.Figure(go.Bar(x=b5.values,y=b5.index.tolist(),orientation='h',
             marker=dict(color='#dc2626',line=dict(width=0)),
             text=[fmt_lac(v) for v in b5.values],textposition='outside'))
-        fig_b5.update_layout(**cl(300,"Bottom 5 Stores",margin=dict(l=10,r=160,t=40,b=20)),
-            xaxis_range=[0,b5.max()*1.55])
+        fig_b5.update_layout(**cl(300,"Bottom 5 Stores",margin=dict(l=10,r=160,t=40,b=20)),xaxis_range=[0,b5.max()*1.55])
         st.plotly_chart(fig_b5, use_container_width=True)
 
     sec("❌ Zero Sale Months — Store-wise")
@@ -1129,19 +1113,18 @@ with t9:
             last=float(row.values[-1]); prev=float(row.values[-2])
             g = f"{'▲' if last>=prev else '▼'} {abs((last-prev)/prev*100):.1f}%" if prev>0 else "N/A"
             zr.append({'Store':sn,'Sale Months':', '.join(sm),'Zero Months':', '.join(zm),
-                       'Zero Count':len(zm),'Jan→Feb':g,'Total Sale':fmt_lac(st_tot.get(sn,0))})
+                       'Zero Count':len(zm),f"{MONTH_SHORT[-2]}→{MONTH_SHORT[-1]}":g,'Total Sale':fmt_lac(st_tot.get(sn,0))})
     if zr:
-        st.dataframe(pd.DataFrame(zr).sort_values('Zero Count',ascending=False),
-            use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(zr).sort_values('Zero Count',ascending=False),use_container_width=True,hide_index=True)
 
-    sec("🏷️ Brand Jan→Feb Growth")
+    sec(f"🏷️ Brand {MONTH_SHORT[-2]}→{MONTH_SHORT[-1]} Growth")
     bwc9 = sale.pivot_table(index='Brand',columns='Month',values='NetSale',aggfunc='sum').reindex(columns=MONTHS_ORDER).fillna(0)
     bg = ((bwc9.iloc[:,-1]-bwc9.iloc[:,-2])/bwc9.iloc[:,-2]*100).replace([np.inf,-np.inf],np.nan)
     fig_bg = go.Figure(go.Bar(x=bg.index.tolist(),y=bg.values.tolist(),
         marker=dict(color=['#16a34a' if (v>=0 and not np.isnan(v)) else '#dc2626' for v in bg.values],line=dict(width=0)),
         text=[f"{v:+.1f}%" if pd.notna(v) else "N/A" for v in bg.values],
         textposition='outside',textfont=dict(size=11,color='#1a0030')))
-    fig_bg.update_layout(**cl(300,"Brand Jan→Feb Growth (%)",margin=dict(l=10,r=10,t=55,b=60)),
+    fig_bg.update_layout(**cl(300,f"Brand {MONTH_SHORT[-2]}→{MONTH_SHORT[-1]} Growth (%)",margin=dict(l=10,r=10,t=55,b=60)),
         bargap=0.3,xaxis_tickangle=-30)
     st.plotly_chart(fig_bg, use_container_width=True)
 
@@ -1270,10 +1253,10 @@ with t11:
 
     prompt = f"""You are a senior retail consultant for SS Retail (UCB multi-brand stores, India).
 
-SALES DATA (Apr'25–Feb'26, 11 months, values in Lacs INR):
+SALES DATA ({date_range}, {len(MONTHS_ORDER)} months, values in Lacs INR):
 - Total Net Sale: {fmt_lac(grand_sale)} across {len(all_stores)} stores
 - Total Closing Stock: {fmt_lac(grand_stock)} ({int(grand_qty):,} pcs)
-- Jan→Feb Growth: {mom_last:+.1f}%
+- {MONTH_SHORT[-2]}→{MONTH_SHORT[-1]} Growth: {mom_last:+.1f}%
 - Best Month: {MONTH_SHORT[int(mall_ai.values.argmax())]} | Worst: {MONTH_SHORT[int(mall_ai.values.argmin())]}
 
 BRAND PERFORMANCE:
@@ -1319,16 +1302,10 @@ Be specific with store/brand names. Direct and actionable."""
                 else:
                     resp = requests.post(
                         "https://api.groq.com/openai/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {groq_key}",
-                            "Content-Type": "application/json"
-                        },
-                        json={
-                            "model": "llama-3.3-70b-versatile",
-                            "messages": [{"role":"user","content": prompt}],
-                            "max_tokens": 2000,
-                            "temperature": 0.7
-                        },
+                        headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+                        json={"model": "llama-3.3-70b-versatile",
+                              "messages": [{"role":"user","content": prompt}],
+                              "max_tokens": 2000, "temperature": 0.7},
                         timeout=60
                     )
                     if resp.status_code == 200:
