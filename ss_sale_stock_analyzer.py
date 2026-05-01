@@ -1002,6 +1002,13 @@ with t7:
         </div>""", unsafe_allow_html=True)
 
 # ══ TAB 8: STORE DEEP DIVE ══
+# Pre-compute store totals once (outside tab)
+@st.cache_data(show_spinner=False)
+def get_all_store_totals(sale_df):
+    return sale_df.groupby('Store Name')['NetSale'].sum()
+
+store_totals = get_all_store_totals(sale)
+
 with t8:
     sec("🔍 Store Deep Dive")
     dd_st = st.selectbox("Select Store", sorted(sale['Store Name'].unique()), key="dd_s")
@@ -1010,7 +1017,7 @@ with t8:
         sk = get_store_stock(stock_filtered, dd_st)
         ts = ss['NetSale'].sum(); tk = sk['StockValue'].sum()
         tq = sk['Closing Qty'].sum()
-        rank = int(sale.groupby('Store Name')['NetSale'].sum().rank(ascending=False)[dd_st])
+        rank = int(store_totals.rank(ascending=False)[dd_st])
         cont = ts/grand_sale if grand_sale>0 else 0
 
         m1,m2,m3,m4 = st.columns(4)
