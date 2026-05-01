@@ -389,6 +389,50 @@ kpi_card(k4,"Top Brand",     top_brand,               fmt_lac(top_brand_val),"�
 kpi_card(k5,"Brands",        str(len(sale['Brand'].unique())), "Active Brands","⭐")
 st.markdown("<br>", unsafe_allow_html=True)
 
+# ══ PRE-COMPUTED CACHED DATA ══
+@st.cache_data(show_spinner=False)
+def get_inventory_matrix(sale_df, stock_df):
+    cats = sorted(sale_df['Category'].dropna().unique())
+    strs = sorted(sale_df['Store Name'].dropna().unique())
+    stm = {}
+    restock = []; dead = []
+    for s in strs:
+        for c in cats:
+            sv = float(sale_df[(sale_df['Store Name']==s)&(sale_df['Category']==c)]['NetSale'].sum())
+            kv = float(stock_df[(stock_df['Store Name']==s)&(stock_df['Category']==c)]['StockValue'].sum())
+            t = sv+kv
+            stm[(s,c)] = round(sv/t*100,1) if t>0 else 0
+            if t>0 and sv>5 and sv/t*100>=80: restock.append(f"{s} → {c}")
+            if sv==0 and kv>0: dead.append(f"{s} → {c}")
+    return stm, restock, dead, cats, strs
+
+inv_matrix, restock, dead, cats10, strs10 = get_inventory_matrix(sale, stock_filtered)
+dead_val = sum([float(stock_filtered[(stock_filtered['Store Name']==r.split(' → ')[0])&(stock_filtered['Category']==r.split(' → ')[1])]['StockValue'].sum()) for r in dead])
+avg_st = sum(inv_matrix.values())/len(inv_matrix) if inv_matrix else 0
+
+@st.cache_data(show_spinner=False)
+def get_recommendations(sale_df, stock_df, cats, strs):
+    recs = []
+    for s10 in strs:
+        for c10 in cats:
+            sv = float(sale_df[(sale_df['Store Name']==s10)&(sale_df['Category']==c10)]['NetSale'].sum())
+            kv = float(stock_df[(stock_df['Store Name']==s10)&(stock_df['Category']==c10)]['StockValue'].sum())
+            kq = int(stock_df[(stock_df['Store Name']==s10)&(stock_df['Category']==c10)]['Closing Qty'].sum())
+            t  = sv+kv
+            if t==0: continue
+            r = sv/t*100
+            if   r>=75 and sv>5:  rec="📦 Increase Stock — High Demand"; pri="🔴 Urgent"
+            elif r>=60 and sv>0:  rec="📦 Replenish — Good Seller";       pri="🟡 Medium"
+            elif r<20 and kv>10:  rec="🔄 Transfer to Better Store";      pri="🔴 Urgent"
+            elif sv==0 and kv>0:  rec="❌ Remove — Dead Stock";            pri="🔴 Urgent"
+            elif r<30 and kv>5:   rec="⬇️ Reduce Stock — Slow Mover";     pri="🟡 Medium"
+            else: continue
+            recs.append({'Store':s10,'Category':c10,'Sale (L)':round(sv,2),'Stock (L)':round(kv,2),
+                         'Stock Qty':kq,'ST%':f"{r:.1f}%",'Recommendation':rec,'Priority':pri})
+    return recs
+
+cached_recs = get_recommendations(sale, stock_filtered, cats10, strs10)
+
 # ══ TABS ══
 t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11 = st.tabs([
     "📈 Overview","🏪 Store-wise","🏷️ Brand-wise","👤 Gender-wise",
@@ -1169,15 +1213,10 @@ with t10:
         🟢 ≥60% Good &nbsp;·&nbsp; 🟡 30–59% Avg &nbsp;·&nbsp; 🔴 &lt;30% Slow
     </div>""", unsafe_allow_html=True)
 
-    cats10 = sorted(sale['Category'].dropna().unique())
-    strs10 = sorted(sale['Store Name'].dropna().unique())
+    # Use cached inventory matrix
     stm = pd.DataFrame(index=strs10, columns=cats10, dtype=float)
-    for s10 in strs10:
-        for c10 in cats10:
-            sv = float(sale[(sale['Store Name']==s10)&(sale['Category']==c10)]['NetSale'].sum())
-            kv = float(stock_filtered[(stock_filtered['Store Name']==s10)&(stock_filtered['Category']==c10)]['StockValue'].sum())
-            t  = sv+kv
-            stm.loc[s10,c10] = round(sv/t*100,1) if t>0 else 0
+    for (s10,c10),v in inv_matrix.items():
+        stm.loc[s10,c10] = v
     stm = stm.fillna(0).astype(float)
 
     fig_stm = go.Figure(go.Heatmap(
@@ -1202,16 +1241,7 @@ with t10:
     best_st  = sa10[sa10>=60].index.tolist()[:3]
     worst_st = sa10[sa10<30].index.tolist()[:3]
 
-    restock = []; dead = []
-    for s10 in strs10:
-        for c10 in cats10:
-            sv = float(sale[(sale['Store Name']==s10)&(sale['Category']==c10)]['NetSale'].sum())
-            kv = float(stock_filtered[(stock_filtered['Store Name']==s10)&(stock_filtered['Category']==c10)]['StockValue'].sum())
-            t  = sv+kv
-            if t>0 and sv>5 and sv/t*100>=80: restock.append(f"{s10} → {c10}")
-            if sv==0 and kv>0: dead.append(f"{s10} → {c10}")
-
-    dead_val = sum([float(stock_filtered[(stock_filtered['Store Name']==r.split(' → ')[0])&(stock_filtered['Category']==r.split(' → ')[1])]['StockValue'].sum()) for r in dead])
+    # restock, dead, dead_val already cached above
 
     st.markdown(f"""<div style="background:#f8faff;border:1.5px solid #c7d7f9;border-radius:12px;
         padding:1rem 1.2rem;margin-bottom:1.2rem">
@@ -1240,25 +1270,8 @@ with t10:
     </div>""", unsafe_allow_html=True)
 
     sec("📋 Stock Recommendations")
-    recs = []
-    for s10 in strs10:
-        for c10 in cats10:
-            sv = float(sale[(sale['Store Name']==s10)&(sale['Category']==c10)]['NetSale'].sum())
-            kv = float(stock_filtered[(stock_filtered['Store Name']==s10)&(stock_filtered['Category']==c10)]['StockValue'].sum())
-            kq = int(stock_filtered[(stock_filtered['Store Name']==s10)&(stock_filtered['Category']==c10)]['Closing Qty'].sum())
-            t  = sv+kv
-            if t==0: continue
-            r = sv/t*100
-            if   r>=75 and sv>5:  rec="📦 Increase Stock — High Demand"; pri="🔴 Urgent"
-            elif r>=60 and sv>0:  rec="📦 Replenish — Good Seller";       pri="🟡 Medium"
-            elif r<20 and kv>10:  rec="🔄 Transfer to Better Store";      pri="🔴 Urgent"
-            elif sv==0 and kv>0:  rec="❌ Remove — Dead Stock";            pri="🔴 Urgent"
-            elif r<30 and kv>5:   rec="⬇️ Reduce Stock — Slow Mover";     pri="🟡 Medium"
-            else: continue
-            recs.append({'Store':s10,'Category':c10,'Sale (L)':round(sv,2),'Stock (L)':round(kv,2),
-                         'Stock Qty':kq,'ST%':f"{r:.1f}%",'Recommendation':rec,'Priority':pri})
-
-    if recs:
+    if cached_recs:
+        recs = cached_recs
         rd = pd.DataFrame(recs)
         pf = st.selectbox("Filter Priority",["All","🔴 Urgent","🟡 Medium"],key="rec_p")
         if pf!="All": rd = rd[rd['Priority']==pf]
